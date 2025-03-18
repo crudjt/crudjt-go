@@ -1,0 +1,29 @@
+package main
+
+/*
+#cgo LDFLAGS: -L./native/macos -l store_jt
+#include "store_jt.h"
+*/
+import "C"
+import (
+	"fmt"
+	"unsafe"
+)
+
+func main() {
+	str := "fsdfsfsdfsdfsdfsdf"
+
+	// Конвертація Go-рядка в C-string
+	cStr := C.CString(str)
+	defer C.free(unsafe.Pointer(cStr)) // Звільнення пам'яті після виклику
+
+	// Виклик функції з Rust
+	C.encrypted_key(cStr)
+
+	fmt.Println("Called Rust function yo successfully!")
+}
+
+// func main() {
+//     value := C.my_function(10)
+//     fmt.Println("Result:", value)
+// }
