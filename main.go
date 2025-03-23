@@ -1,7 +1,7 @@
 package main
 
 /*
-#cgo LDFLAGS: -L./native/macos -l store_jt
+#cgo LDFLAGS: -L. -l store_jt -Wl,-rpath,.
 #include "store_jt.h"
 */
 import "C"
