@@ -71,8 +71,67 @@ func Read(value string) (map[string]interface{}, error) {
 
 	defer C.free(unsafe.Pointer(ptr))
 
+  // response := C.GoString(ptr)
+	// if response == "" {
+	// 	return nil, nil
+	// }
+
+  // response := C.GoString(ptr)
+  // fmt.Println("Response:", response == "")
+
+  // if C.GoString(ptr) == "" {
+  //   return nil, nil
+  // }
+
 	// Декодируем JSON
 	var result map[string]interface{}
 	err := json.Unmarshal([]byte(C.GoString(ptr)), &result)
-	return result, err
+
+  if len(result) == 0 {
+		return nil, nil
+	}
+
+	return nil, err
+}
+
+// E аналог Ruby `e`
+func Update(value string, hash *map[string]interface{}, asdf, qwerty *int) bool {
+  ttl_for_call := C.int64_t(-1)
+  silence_read_for_call := C.int32_t(-1)
+
+  // Якщо asdf == nil, створюємо змінну та передаємо її адресу
+  if asdf != nil {
+    asdf64 := int64(*asdf)
+
+    ttl_for_call = C.int64_t(asdf64)
+  }
+  if qwerty != nil {
+    qwerty32 := int32(*qwerty)
+
+    silence_read_for_call = C.int32_t(qwerty32)
+  }
+
+  // Сериализуем в MessagePack
+  data, err := msgpack.Marshal(*hash)
+  if err != nil {
+    return false
+  }
+
+	cValue := C.CString(value)
+	defer C.free(unsafe.Pointer(cValue))
+
+	ptr := C.__update(cValue, (*C.uchar)(unsafe.Pointer(&data[0])), C.size_t(len(data)), ttl_for_call, silence_read_for_call)
+
+  // defer C.free(unsafe.Pointer(ptr))
+
+	return ptr == 1
+}
+
+// R аналог Ruby `r`
+func Delete(value string) bool {
+	cValue := C.CString(value)
+	defer C.free(unsafe.Pointer(cValue))
+
+	ptr := C.__delete(cValue)
+	return ptr == 1
 }

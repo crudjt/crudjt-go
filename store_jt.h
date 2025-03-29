@@ -18,9 +18,9 @@ const char* __create(const uint8_t* data, size_t len, int64_t ttl, int32_t silen
 
 const char* __read(const char* token);
 
-const int* __update(const char* token, const uint8_t* data, size_t len, int64_t ttl, int32_t silence_read);
+int __update(const char* token, const uint8_t* data, size_t len, int64_t ttl, int32_t silence_read);
 
-const int* __delete(const char* token);
+int __delete(const char* token);
 
 #ifdef __cplusplus
 }
