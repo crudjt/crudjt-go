@@ -91,7 +91,7 @@ func Read(value string) (map[string]interface{}, error) {
 		return nil, nil
 	}
 
-	return nil, err
+	return result, err
 }
 
 // E аналог Ruby `e`
