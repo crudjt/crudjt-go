@@ -19,23 +19,28 @@ import (
   // "fmt"
 )
 
+var CacheInstance *LRUCache
+
 // Q аналог Ruby `q`
 func Create(hash *map[string]interface{}, asdf, qwerty *int) string {
-	// var asdfVal, qwertyVal int
-
   ttl_for_call := C.int64_t(-1)
   silence_read_for_call := C.int32_t(-1)
+
+	ttl_for_cache := -1
+	silence_read_for_cache := -1
 
 	// Якщо asdf == nil, створюємо змінну та передаємо її адресу
   if asdf != nil {
     asdf64 := int64(*asdf)
 
 		ttl_for_call = C.int64_t(asdf64)
+		ttl_for_cache = int(*asdf) + 1 // TODO: move to CacheInstance
 	}
 	if qwerty != nil {
     qwerty32 := int32(*qwerty)
 
 		silence_read_for_call = C.int32_t(qwerty32)
+		silence_read_for_cache = int(*qwerty)
 	}
   //
 	// Сериализуем в MessagePack
@@ -50,17 +55,35 @@ func Create(hash *map[string]interface{}, asdf, qwerty *int) string {
 		ttl_for_call, silence_read_for_call,
 	)
 
+	token := C.GoString(ptr)
+	CacheInstance.Insert(token, *hash, ttl_for_cache, silence_read_for_cache)
+
 	// Конвертуємо C-строку в Go-строку
 	defer C.free(unsafe.Pointer(ptr))
-	return C.GoString(ptr)
+	return token
 }
 
-// W аналог Ruby `w`
-func Read(value string) (map[string]interface{}, error) {
+func OriginalRead(value string) {
 	cValue := C.CString(value)
 	defer C.free(unsafe.Pointer(cValue))
 
 	ptr := C.__read(cValue)
+	defer C.free(unsafe.Pointer(ptr))
+}
+
+// W аналог Ruby `w`
+func Read(value string) (map[string]interface{}, error) {
+	output := CacheInstance.Get(value)
+	if output != nil {
+		return output, nil
+	}
+
+	cValue := C.CString(value)
+	defer C.free(unsafe.Pointer(cValue))
+
+	ptr := C.__read(cValue)
+	defer C.free(unsafe.Pointer(ptr))
+
 	if ptr == nil {
 		return nil, nil
 	}
@@ -69,7 +92,6 @@ func Read(value string) (map[string]interface{}, error) {
 	// rawStr := C.GoString(ptr)
 	// fmt.Println("Raw C Output:", rawStr) // Вивід на екран
 
-	defer C.free(unsafe.Pointer(ptr))
 
   // response := C.GoString(ptr)
 	// if response == "" {
@@ -90,6 +112,7 @@ func Read(value string) (map[string]interface{}, error) {
   if len(result) == 0 {
 		return nil, nil
 	}
+	CacheInstance.ForceInsert(value, result)
 
 	return result, err
 }
@@ -99,16 +122,21 @@ func Update(value string, hash *map[string]interface{}, asdf, qwerty *int) bool 
   ttl_for_call := C.int64_t(-1)
   silence_read_for_call := C.int32_t(-1)
 
+	ttl_for_cache := -1
+	silence_read_for_cache := -1
+
   // Якщо asdf == nil, створюємо змінну та передаємо її адресу
   if asdf != nil {
     asdf64 := int64(*asdf)
 
     ttl_for_call = C.int64_t(asdf64)
+		ttl_for_cache = int(*asdf) + 1 // TODO: move to CacheInstance
   }
   if qwerty != nil {
     qwerty32 := int32(*qwerty)
 
     silence_read_for_call = C.int32_t(qwerty32)
+		silence_read_for_cache = int(*qwerty)
   }
 
   // Сериализуем в MessagePack
@@ -122,9 +150,14 @@ func Update(value string, hash *map[string]interface{}, asdf, qwerty *int) bool 
 
 	ptr := C.__update(cValue, (*C.uchar)(unsafe.Pointer(&data[0])), C.size_t(len(data)), ttl_for_call, silence_read_for_call)
 
+	bool := ptr == 1
+	if bool {
+		CacheInstance.Insert(value, *hash, ttl_for_cache, silence_read_for_cache)
+	}
+
   // defer C.free(unsafe.Pointer(ptr))
 
-	return ptr == 1
+	return bool
 }
 
 // R аналог Ruby `r`
@@ -133,5 +166,6 @@ func Delete(value string) bool {
 	defer C.free(unsafe.Pointer(cValue))
 
 	ptr := C.__delete(cValue)
+	CacheInstance.Delete(value)
 	return ptr == 1
 }

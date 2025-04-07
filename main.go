@@ -9,6 +9,9 @@ import (
 )
 
 func main() {
+	CacheInstance = NewLRUCache(OriginalRead)
+
+
 	fmt.Printf("OS: %s\n", runtime.GOOS)
 	fmt.Printf("CPU: %s\n", runtime.GOARCH)
 
@@ -68,6 +71,7 @@ func main() {
 	fmt.Println("with silence_read")
 	silence_read := 6
 	valueWithsilence_read := Create(&data, nil, &silence_read)
+	// fmt.Println(Read(valueWithsilence_read))
 
 	expectedsilence_read := silence_read - 1
 	for i := 0; i < silence_read; i++ {
