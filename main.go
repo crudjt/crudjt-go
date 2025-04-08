@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	CacheInstance = NewLRUCache(OriginalRead)
+	// CacheInstance = NewLRUCache(OriginalRead)
 
 
 	fmt.Printf("OS: %s\n", runtime.GOOS)

@@ -14,7 +14,7 @@ type LRUCache struct {
 	mutex  sync.Mutex
 }
 
-const CACHE_CAPACITY = 40000
+const CACHE_CAPACITY = 40_000
 
 func NewLRUCache(wFunc func(string)) *LRUCache {
 	cache, _ := lru.New[string, map[string]interface{}](CACHE_CAPACITY)

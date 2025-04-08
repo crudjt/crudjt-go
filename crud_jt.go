@@ -21,6 +21,10 @@ import (
 
 var CacheInstance *LRUCache
 
+func init() {
+	CacheInstance = NewLRUCache(OriginalRead)
+}
+
 // Q аналог Ruby `q`
 func Create(hash *map[string]interface{}, asdf, qwerty *int) string {
   ttl_for_call := C.int64_t(-1)
