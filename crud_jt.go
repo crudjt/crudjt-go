@@ -1,14 +1,14 @@
-package main
+package crud_jt
 
 /*
-#cgo linux,amd64 LDFLAGS: -L./native/linux/x86_64 -l store_jt -Wl,-rpath,.
-#cgo linux,arm64 LDFLAGS: -L./native/linux/arm64 -l store_jt -Wl,-rpath,.
+#cgo linux,amd64 LDFLAGS: -L${SRCDIR}/native/linux/x86_64 -l store_jt -Wl,-rpath,${SRCDIR}/native/linux/x86_64
+#cgo linux,arm64 LDFLAGS: -L${SRCDIR}/native/linux/arm64 -l store_jt -Wl,-rpath,${SRCDIR}/native/linux/arm64
 
-#cgo darwin,amd64 LDFLAGS: -L ./native/macos/x86_64 -l store_jt -Wl,-rpath,.
-#cgo darwin,arm64 LDFLAGS: -L./native/macos/arm64 -l store_jt -Wl,-rpath,.
+#cgo darwin,amd64 LDFLAGS: -L${SRCDIR}/native/macos/x86_64 -lstore_jt -Wl,-rpath,${SRCDIR}/native/macos/x86_64
+#cgo darwin,arm64 LDFLAGS: -L${SRCDIR}/native/macos/arm64 -l store_jt -Wl,-rpath,${SRCDIR}/native/macos/arm64
 
-#cgo windows,amd64 LDFLAGS: -L./native/windows/x86_64 -l store_jt -Wl,-rpath,.
-#cgo windows,arm64 LDFLAGS: -L./native/windows/arm64 -l store_jt -Wl,-rpath,.
+#cgo windows,amd64 LDFLAGS: -L${SRCDIR}/native/windows/x86_64 -l store_jt -Wl,-rpath,${SRCDIR}/native/windows/x86_64
+#cgo windows,arm64 LDFLAGS: -L${SRCDIR}/native/windows/arm64 -l store_jt -Wl,-rpath,${SRCDIR}/native/windows/arm64
 #include "store_jt.h"
 */
 import "C"

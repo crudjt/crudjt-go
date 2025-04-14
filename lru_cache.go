@@ -1,4 +1,4 @@
-package main
+package crud_jt
 
 import (
 	// "fmt"
