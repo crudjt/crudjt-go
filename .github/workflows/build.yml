@@ -28,9 +28,6 @@ jobs:
         with:
           go-version: '1.21' # або інша потрібна версія
 
-      - name: Print Go version
-        run: go version
-
       - name: Run Go program
-        working-directory: ./autotest
+        working-directory: ./autotests
         run: go run .
