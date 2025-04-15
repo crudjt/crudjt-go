@@ -16,7 +16,7 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 	"unsafe"
   "encoding/json"
-  // "fmt"
+  "fmt"
 )
 
 var CacheInstance *LRUCache
@@ -27,6 +27,14 @@ func init() {
 
 // Q аналог Ruby `q`
 func Create(hash *map[string]interface{}, asdf, qwerty *int) string {
+	err := ValidateInsertion(hash, asdf, qwerty)
+	if err != nil {
+		fmt.Println("Create error:", err)
+
+		panic("Ups") // mock
+		return ""
+	}
+
   ttl_for_call := C.int64_t(-1)
   silence_read_for_call := C.int32_t(-1)
 
@@ -77,6 +85,13 @@ func OriginalRead(value string) {
 
 // W аналог Ruby `w`
 func Read(value string) (map[string]interface{}, error) {
+	read_err := ValidateToken(value)
+	if read_err != nil {
+		fmt.Println("Read error:", read_err)
+
+		panic("Ups") // mock
+	}
+
 	output := CacheInstance.Get(value)
 	if output != nil {
 		return output, nil
@@ -123,6 +138,13 @@ func Read(value string) (map[string]interface{}, error) {
 
 // E аналог Ruby `e`
 func Update(value string, hash *map[string]interface{}, asdf, qwerty *int) bool {
+	err := ValidateInsertion(hash, asdf, qwerty)
+	if err != nil {
+		fmt.Println("Update error:", err)
+
+		panic("Ups")
+	}
+
   ttl_for_call := C.int64_t(-1)
   silence_read_for_call := C.int32_t(-1)
 
@@ -166,6 +188,13 @@ func Update(value string, hash *map[string]interface{}, asdf, qwerty *int) bool 
 
 // R аналог Ruby `r`
 func Delete(value string) bool {
+	delete_err := ValidateToken(value)
+	if delete_err != nil {
+		fmt.Println("Delete error:", delete_err)
+
+		panic("Ups")
+	}
+
 	cValue := C.CString(value)
 	defer C.free(unsafe.Pointer(cValue))
 
