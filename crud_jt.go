@@ -6,9 +6,6 @@ package crud_jt
 
 #cgo darwin,amd64 LDFLAGS: -L${SRCDIR}/native/macos/x86_64 -lstore_jt -Wl,-rpath,${SRCDIR}/native/macos/x86_64
 #cgo darwin,arm64 LDFLAGS: -L${SRCDIR}/native/macos/arm64 -l store_jt -Wl,-rpath,${SRCDIR}/native/macos/arm64
-
-#cgo windows,amd64 LDFLAGS: -L${SRCDIR}/native/windows/x86_64 -l store_jt -Wl,-rpath,${SRCDIR}/native/windows/x86_64
-#cgo windows,arm64 LDFLAGS: -L${SRCDIR}/native/windows/arm64 -l store_jt -Wl,-rpath,${SRCDIR}/native/windows/arm64
 #include "store_jt.h"
 */
 import "C"
