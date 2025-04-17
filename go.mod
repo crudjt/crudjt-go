@@ -1,4 +1,4 @@
-module crud_jt
+module github.com/exwarvlad/crud_jt-go v1.0.0
 
 go 1.24.1
 
