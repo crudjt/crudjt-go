@@ -16,7 +16,31 @@ import (
   "fmt"
 )
 
+// Config тримає налаштування модуля
+type Config struct {
+    EncryptedKey string
+    StoreJtPath string
+}
+
+// приватна змінна з конфігом
+var config Config
+
 var CacheInstance *LRUCache
+
+// SetConfig встановлює глобальну конфігурацію модуля
+func SetConfig(cfg Config) {
+    config = cfg
+
+		if cfg.StoreJtPath != "" {
+			cstr := C.CString(cfg.StoreJtPath)
+			defer C.free(unsafe.Pointer(cstr))
+			C.__store_jt_path(cstr)
+		}
+
+		cstr := C.CString(cfg.EncryptedKey)
+		defer C.free(unsafe.Pointer(cstr))
+		C.__encrypted_key(cstr)
+}
 
 func init() {
 	CacheInstance = NewLRUCache(OriginalRead)

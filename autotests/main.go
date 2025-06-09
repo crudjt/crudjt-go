@@ -12,6 +12,9 @@ import (
 func main() {
 	// CacheInstance = NewLRUCache(OriginalRead)
 
+	crud_jt.SetConfig(crud_jt.Config{
+		EncryptedKey: "Cm7B68NWsMNNYjzMDREacmpe5sI1o0g40ZC9w1yQW3WOes7Gm59UsittLOHR2dciYiwmaYq98l3tG8h9yXVCxg==",
+	})
 
 	fmt.Printf("OS: %s\n", runtime.GOOS)
 	fmt.Printf("CPU: %s\n", runtime.GOARCH)
