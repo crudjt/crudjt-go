@@ -129,7 +129,7 @@ func main() {
 	const REQUESTS = 40_000
 
 	// Симуляція значень для тестування
-	data = map[string]interface{}{"user_id": 414243, "role": 11, "devices": map[string]string{"ios_expired_at": time.Now().String(), "android_expired_at": time.Now().String(), "mobile_app_expired_at": time.Now().String()}, "a": 42}
+	data = map[string]interface{}{"user_id": 414243, "role": 11, "devices": map[string]string{"ios_expired_at": time.Now().String(), "android_expired_at": time.Now().String()}, "a": 42}
 	edData = map[string]interface{}{"user_id": 42, "role": 11}
 
 	// Тестування навантаження
