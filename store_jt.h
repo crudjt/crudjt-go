@@ -12,9 +12,11 @@ extern "C" {
 #endif
 
 // Оголошення функції з Rust
-void __encrypted_key(const char *key);
+// void __encrypted_key(const char *key);
+//
+// void __store_jt_path(const char *path_to_db);
 
-void __store_jt_path(const char *path_to_db);
+const char* start_store_jt(const char *key, const char *path_to_db);
 
 const char* __create(const uint8_t* data, size_t len, int64_t ttl, int32_t silence_read);
 

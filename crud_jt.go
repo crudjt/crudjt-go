@@ -14,46 +14,75 @@ import (
 	"unsafe"
   "encoding/json"
   "fmt"
+	"github.com/yourname/your_project/errors"
 )
-
-// Config тримає налаштування модуля
-type Config struct {
-    EncryptedKey string
-    StoreJtPath string
-}
-
-// приватна змінна з конфігом
-var config Config
 
 var CacheInstance *LRUCache
 
-// SetConfig встановлює глобальну конфігурацію модуля
-func SetConfig(cfg Config) {
-    config = cfg
+type Config struct {
+	EncryptedKey string
+	StoreJtPath string
+	WasStarted bool
+}
 
-		if cfg.StoreJtPath != "" {
-			cstr := C.CString(cfg.StoreJtPath)
-			defer C.free(unsafe.Pointer(cstr))
-			C.__store_jt_path(cstr)
+var config Config
+
+func Start(cfg Config) error {
+	if cfg.EncryptedKey == "" {
+		return fmt.Errorf(ErrorMessage(ErrorEncryptedKeyNotSet))
+	}
+	if cfg.WasStarted {
+		return fmt.Errorf(ErrorMessage(ErrorAlreadyStarted))
+	}
+
+	cEncryptedKey := C.CString(cfg.EncryptedKey)
+	defer C.free(unsafe.Pointer(cEncryptedKey))
+
+	var cStoreJtPath *C.char
+	if cfg.StoreJtPath != "" {
+	    cStoreJtPath = C.CString(cfg.StoreJtPath)
+	    defer C.free(unsafe.Pointer(cStoreJtPath))
+	} else {
+	    cStoreJtPath = nil // NULL у C
+	}
+	defer C.free(unsafe.Pointer(cStoreJtPath))
+
+	ptr := C.start_store_jt(cEncryptedKey, cStoreJtPath)
+	defer C.free(unsafe.Pointer(ptr))
+
+	response := C.GoString(ptr)
+
+	var res struct {
+		Ok bool `json:"ok"`
+		Code string `json:"code"`
+		ErrorMessage string `json:"error_message"`
+	}
+	_ = json.Unmarshal([]byte(response), &res)
+
+	if !res.Ok {
+		if errFactory, exists := errors.ERRORS[res.Code]; exists {
+			return(errFactory(res.ErrorMessage))
 		}
+		return(fmt.Errorf("Unknown error code %s: %s", res.Code, res.ErrorMessage))
+	}
 
-		cstr := C.CString(cfg.EncryptedKey)
-		defer C.free(unsafe.Pointer(cstr))
-		C.__encrypted_key(cstr)
+	cfg.WasStarted = true
+	config = cfg
+	return nil
 }
 
 func init() {
 	CacheInstance = NewLRUCache(OriginalRead)
 }
 
-// Q аналог Ruby `q`
-func Create(hash *map[string]interface{}, asdf, qwerty *int) string {
-	err := ValidateInsertion(hash, asdf, qwerty)
-	if err != nil {
-		fmt.Println("Create error:", err)
+func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
+	if !config.WasStarted {
+	    return "", fmt.Errorf(ErrorMessage(ErrorNotStarted))
+	}
 
-		panic("Ups") // mock
-		return ""
+	err := ValidateInsertion(hash, ttl, silence_read)
+	if err != nil {
+		return "", err
 	}
 
   ttl_for_call := C.int64_t(-1)
@@ -62,24 +91,29 @@ func Create(hash *map[string]interface{}, asdf, qwerty *int) string {
 	ttl_for_cache := -1
 	silence_read_for_cache := -1
 
-	// Якщо asdf == nil, створюємо змінну та передаємо її адресу
-  if asdf != nil {
-    asdf64 := int64(*asdf)
+	// Якщо ttl == nil, створюємо змінну та передаємо її адресу
+  if ttl != nil {
+    ttl64 := int64(*ttl)
 
-		ttl_for_call = C.int64_t(asdf64)
-		ttl_for_cache = int(*asdf) + 1 // TODO: move to CacheInstance
+		ttl_for_call = C.int64_t(ttl64)
+		ttl_for_cache = int(*ttl) + 1 // TODO: move to CacheInstance
 	}
-	if qwerty != nil {
-    qwerty32 := int32(*qwerty)
+	if silence_read != nil {
+    silence_read32 := int32(*silence_read)
 
-		silence_read_for_call = C.int32_t(qwerty32)
-		silence_read_for_cache = int(*qwerty)
+		silence_read_for_call = C.int32_t(silence_read32)
+		silence_read_for_cache = int(*silence_read)
 	}
   //
 	// Сериализуем в MessagePack
 	data, err := msgpack.Marshal(*hash)
 	if err != nil {
-		return ""
+		return "", err
+	}
+
+	hash_bytesize_limited := ValidateHashBytesize(len(data))
+	if hash_bytesize_limited != nil {
+		return "", hash_bytesize_limited
 	}
 
 	// Викликаємо C-функцію
@@ -89,11 +123,15 @@ func Create(hash *map[string]interface{}, asdf, qwerty *int) string {
 	)
 
 	token := C.GoString(ptr)
+	if token == "" {
+		return "", errors.NewInternalError("Something went wrong. Ups")
+	}
+
 	CacheInstance.Insert(token, *hash, ttl_for_cache, silence_read_for_cache)
 
 	// Конвертуємо C-строку в Go-строку
 	defer C.free(unsafe.Pointer(ptr))
-	return token
+	return token, nil
 }
 
 func OriginalRead(value string) {
@@ -104,13 +142,14 @@ func OriginalRead(value string) {
 	defer C.free(unsafe.Pointer(ptr))
 }
 
-// W аналог Ruby `w`
 func Read(value string) (map[string]interface{}, error) {
+	if !config.WasStarted {
+			return nil, fmt.Errorf(ErrorMessage(ErrorNotStarted))
+	}
+
 	read_err := ValidateToken(value)
 	if read_err != nil {
-		fmt.Println("Read error:", read_err)
-
-		panic("Ups") // mock
+		return nil, read_err
 	}
 
 	output := CacheInstance.Get(value)
@@ -124,46 +163,49 @@ func Read(value string) (map[string]interface{}, error) {
 	ptr := C.__read(cValue)
 	defer C.free(unsafe.Pointer(ptr))
 
-	if ptr == nil {
-		return nil, nil
-	}
-
-  // // Виводимо результат перед конвертацією
-	// rawStr := C.GoString(ptr)
-	// fmt.Println("Raw C Output:", rawStr) // Вивід на екран
-
-
-  // response := C.GoString(ptr)
-	// if response == "" {
-	// 	return nil, nil
-	// }
-
-  // response := C.GoString(ptr)
-  // fmt.Println("Response:", response == "")
-
-  // if C.GoString(ptr) == "" {
-  //   return nil, nil
-  // }
-
 	// Декодируем JSON
 	var result map[string]interface{}
-	err := json.Unmarshal([]byte(C.GoString(ptr)), &result)
+	json.Unmarshal([]byte(C.GoString(ptr)), &result)
 
-  if len(result) == 0 {
+	ok, _ := result["ok"].(bool)
+
+	if ok {
+		code, _ := result["code"].(string)
+		if errFactory, exists := errors.ERRORS[code]; exists {
+			return nil, errFactory(result["error_message"].(string))
+		}
+		return nil, fmt.Errorf("unknown error code %s", code)
+	}
+
+	// Перевірка data
+	if result["data"] == nil {
 		return nil, nil
 	}
-	CacheInstance.ForceInsert(value, result)
 
-	return result, err
+	// Парсимо data
+	dataBytes, err := json.Marshal(result["data"])
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal data: %w", err)
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(dataBytes, &data); err != nil {
+		return nil, fmt.Errorf("failed to parse data: %w", err)
+	}
+
+	CacheInstance.ForceInsert(value, data)
+
+	return data, nil
 }
 
-// E аналог Ruby `e`
-func Update(value string, hash *map[string]interface{}, asdf, qwerty *int) bool {
-	err := ValidateInsertion(hash, asdf, qwerty)
-	if err != nil {
-		fmt.Println("Update error:", err)
+func Update(value string, hash *map[string]interface{}, ttl, silence_read *int) (bool, error) {
+	if !config.WasStarted {
+			return false, fmt.Errorf(ErrorMessage(ErrorNotStarted))
+	}
 
-		panic("Ups")
+	err := ValidateInsertion(hash, ttl, silence_read)
+	if err != nil {
+		return false, err
 	}
 
   ttl_for_call := C.int64_t(-1)
@@ -172,25 +214,30 @@ func Update(value string, hash *map[string]interface{}, asdf, qwerty *int) bool 
 	ttl_for_cache := -1
 	silence_read_for_cache := -1
 
-  // Якщо asdf == nil, створюємо змінну та передаємо її адресу
-  if asdf != nil {
-    asdf64 := int64(*asdf)
+  // Якщо ttl == nil, створюємо змінну та передаємо її адресу
+  if ttl != nil {
+    ttl64 := int64(*ttl)
 
-    ttl_for_call = C.int64_t(asdf64)
-		ttl_for_cache = int(*asdf) + 1 // TODO: move to CacheInstance
+    ttl_for_call = C.int64_t(ttl64)
+		ttl_for_cache = int(*ttl) + 1 // TODO: move to CacheInstance
   }
-  if qwerty != nil {
-    qwerty32 := int32(*qwerty)
+  if silence_read != nil {
+    silence_read32 := int32(*silence_read)
 
-    silence_read_for_call = C.int32_t(qwerty32)
-		silence_read_for_cache = int(*qwerty)
+    silence_read_for_call = C.int32_t(silence_read32)
+		silence_read_for_cache = int(*silence_read)
   }
 
   // Сериализуем в MessagePack
   data, err := msgpack.Marshal(*hash)
   if err != nil {
-    return false
+    return false, err
   }
+
+	hash_bytesize_limited := ValidateHashBytesize(len(data))
+	if hash_bytesize_limited != nil {
+		return false, hash_bytesize_limited
+	}
 
 	cValue := C.CString(value)
 	defer C.free(unsafe.Pointer(cValue))
@@ -202,18 +249,17 @@ func Update(value string, hash *map[string]interface{}, asdf, qwerty *int) bool 
 		CacheInstance.Insert(value, *hash, ttl_for_cache, silence_read_for_cache)
 	}
 
-  // defer C.free(unsafe.Pointer(ptr))
-
-	return bool
+	return bool, nil
 }
 
-// R аналог Ruby `r`
-func Delete(value string) bool {
+func Delete(value string) (bool, error) {
+	if !config.WasStarted {
+			return false, fmt.Errorf(ErrorMessage(ErrorNotStarted))
+	}
+
 	delete_err := ValidateToken(value)
 	if delete_err != nil {
-		fmt.Println("Delete error:", delete_err)
-
-		panic("Ups")
+		return false, delete_err
 	}
 
 	cValue := C.CString(value)
@@ -221,5 +267,5 @@ func Delete(value string) bool {
 
 	ptr := C.__delete(cValue)
 	CacheInstance.Delete(value)
-	return ptr == 1
+	return (ptr == 1), nil
 }
