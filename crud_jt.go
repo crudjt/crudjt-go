@@ -169,7 +169,7 @@ func Read(value string) (map[string]interface{}, error) {
 
 	ok, _ := result["ok"].(bool)
 
-	if ok {
+	if !ok {
 		code, _ := result["code"].(string)
 		if errFactory, exists := errors.ERRORS[code]; exists {
 			return nil, errFactory(result["error_message"].(string))
@@ -182,15 +182,12 @@ func Read(value string) (map[string]interface{}, error) {
 		return nil, nil
 	}
 
-	// Парсимо data
-	dataBytes, err := json.Marshal(result["data"])
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal data: %w", err)
-	}
+	dataStr, ok := result["data"].(string)
 
+	// // Парсимо data
 	var data map[string]interface{}
-	if err := json.Unmarshal(dataBytes, &data); err != nil {
-		return nil, fmt.Errorf("failed to parse data: %w", err)
+	if err := json.Unmarshal([]byte(dataStr), &data); err != nil {
+	    return nil, fmt.Errorf("failed to parse data JSON: %w", err)
 	}
 
 	CacheInstance.ForceInsert(value, data)
