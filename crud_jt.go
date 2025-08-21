@@ -28,6 +28,11 @@ type Config struct {
 var config Config
 
 func Start(cfg Config) error {
+	err := ValidateEncryptedKey(cfg.EncryptedKey)
+	if err != nil {
+		return err
+	}
+
 	if cfg.EncryptedKey == "" {
 		return fmt.Errorf(ErrorMessage(ErrorEncryptedKeyNotSet))
 	}
