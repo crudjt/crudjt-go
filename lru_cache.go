@@ -1,7 +1,6 @@
 package crud_jt
 
 import (
-	// "fmt"
 	"sync"
 	"time"
 
@@ -33,7 +32,7 @@ func (l *LRUCache) Get(value string) map[string]interface{} {
 		return nil
 	}
 
-	l.cache.Add(value, cachedValue) // Update LRU access order
+	l.cache.Add(value, cachedValue)
 	output := make(map[string]interface{})
 
   metadataOut := make(map[string]interface{})
@@ -51,7 +50,7 @@ func (l *LRUCache) Get(value string) map[string]interface{} {
 		if silence_read, exists := metadata["silence_read"].(int); exists {
 			silence_read -= 1
 			metadataOut["silence_read"] = silence_read
-      metadata["silence_read"] = silence_read // updates cached silence_read
+      metadata["silence_read"] = silence_read
 
 			if silence_read <= 0 {
 				l.cache.Remove(value)
@@ -65,7 +64,6 @@ func (l *LRUCache) Get(value string) map[string]interface{} {
 	}
 
 	output["data"] = cachedValue["data"]
-  // fmt.Println(output)
 
 	return output
 }
@@ -104,13 +102,3 @@ func (l *LRUCache) Delete(value string) {
 	defer l.mutex.Unlock()
 	l.cache.Remove(value)
 }
-
-// func main() {
-// 	wFunc := func(value string) { fmt.Println("W function called for:", value) }
-// 	cache := NewLRUCache(wFunc)
-//
-// 	cache.Insert("test_key", map[string]interface{}{ "user": "John Doe" }, 10, 5)
-// 	fmt.Println("Initial Get:", cache.Get("test_key"))
-// 	time.Sleep(2 * time.Second)
-// 	fmt.Println("After 2s Get:", cache.Get("test_key"))
-// }

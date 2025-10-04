@@ -48,7 +48,7 @@ func Start(cfg Config) error {
 	    cStoreJtPath = C.CString(cfg.StoreJtPath)
 	    defer C.free(unsafe.Pointer(cStoreJtPath))
 	} else {
-	    cStoreJtPath = nil // NULL у C
+	    cStoreJtPath = nil
 	}
 	defer C.free(unsafe.Pointer(cStoreJtPath))
 
@@ -96,12 +96,11 @@ func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error
 	ttl_for_cache := -1
 	silence_read_for_cache := -1
 
-	// Якщо ttl == nil, створюємо змінну та передаємо її адресу
   if ttl != nil {
     ttl64 := int64(*ttl)
 
 		ttl_for_call = C.int64_t(ttl64)
-		ttl_for_cache = int(*ttl) + 1 // TODO: move to CacheInstance
+		ttl_for_cache = int(*ttl) + 1
 	}
 	if silence_read != nil {
     silence_read32 := int32(*silence_read)
@@ -109,8 +108,7 @@ func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error
 		silence_read_for_call = C.int32_t(silence_read32)
 		silence_read_for_cache = int(*silence_read)
 	}
-  //
-	// Сериализуем в MessagePack
+
 	data, err := msgpack.Marshal(*hash)
 	if err != nil {
 		return "", err
@@ -121,7 +119,6 @@ func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error
 		return "", hash_bytesize_limited
 	}
 
-	// Викликаємо C-функцію
 	ptr := C.__create(
 		(*C.uchar)(unsafe.Pointer(&data[0])), C.size_t(len(data)),
 		ttl_for_call, silence_read_for_call,
@@ -134,7 +131,6 @@ func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error
 
 	CacheInstance.Insert(token, *hash, ttl_for_cache, silence_read_for_cache)
 
-	// Конвертуємо C-строку в Go-строку
 	defer C.free(unsafe.Pointer(ptr))
 	return token, nil
 }
@@ -168,7 +164,6 @@ func Read(value string) (map[string]interface{}, error) {
 	ptr := C.__read(cValue)
 	defer C.free(unsafe.Pointer(ptr))
 
-	// Декодируем JSON
 	var result map[string]interface{}
 	json.Unmarshal([]byte(C.GoString(ptr)), &result)
 
@@ -182,14 +177,12 @@ func Read(value string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("unknown error code %s", code)
 	}
 
-	// Перевірка data
 	if result["data"] == nil {
 		return nil, nil
 	}
 
 	dataStr, ok := result["data"].(string)
 
-	// // Парсимо data
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(dataStr), &data); err != nil {
 	    return nil, fmt.Errorf("failed to parse data JSON: %w", err)
@@ -216,12 +209,11 @@ func Update(value string, hash *map[string]interface{}, ttl, silence_read *int) 
 	ttl_for_cache := -1
 	silence_read_for_cache := -1
 
-  // Якщо ttl == nil, створюємо змінну та передаємо її адресу
   if ttl != nil {
     ttl64 := int64(*ttl)
 
     ttl_for_call = C.int64_t(ttl64)
-		ttl_for_cache = int(*ttl) + 1 // TODO: move to CacheInstance
+		ttl_for_cache = int(*ttl) + 1
   }
   if silence_read != nil {
     silence_read32 := int32(*silence_read)
@@ -230,7 +222,6 @@ func Update(value string, hash *map[string]interface{}, ttl, silence_read *int) 
 		silence_read_for_cache = int(*silence_read)
   }
 
-  // Сериализуем в MessagePack
   data, err := msgpack.Marshal(*hash)
   if err != nil {
     return false, err

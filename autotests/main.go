@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"time"
   "github.com/yourname/your_project"
-	// "math/rand"
 )
 
 func main() {
@@ -80,7 +79,6 @@ func main() {
 	fmt.Println("with silence_read")
 	silence_read := 6
 	valueWithsilence_read, _ := crud_jt.Create(&data, nil, &silence_read)
-	// fmt.Println(crud_jt.Read(valueWithsilence_read))
 
 	expectedsilence_read := silence_read - 1
 	for i := 0; i < silence_read; i++ {
@@ -105,14 +103,11 @@ func main() {
 	expectedttl = ttl
 	expectedsilence_read = silence_read - 1
 
-	// Проходимо через цикл і порівнюємо JSON-результати
 	for i := 0; i < silence_read; i++ {
-		// Формуємо очікувані значення для порівняння
 		expectedJSON, _ := json.Marshal(map[string]interface{}{"metadata": map[string]int{"ttl": expectedttl, "silence_read": expectedsilence_read}, "data": data})
 		ttl_and_sr_response, _ := crud_jt.Read(valueWithTtlAndsilence_read)
 		jsonValue, _ := json.Marshal(ttl_and_sr_response)
 
-		// Порівнюємо JSON
 		fmt.Println(string(jsonValue) == string(expectedJSON))
 
 		expectedttl--
@@ -120,27 +115,19 @@ func main() {
 		time.Sleep(1 * time.Second)
 	}
 
-	// Після циклу перевіряємо, чи є nil
 	ttl_and_sr_response, _ := crud_jt.Read(valueWithTtlAndsilence_read)
 	fmt.Println(ttl_and_sr_response == nil)
 
-
-	// with scale load
 	const REQUESTS = 40_000
 
-	// Симуляція значень для тестування
 	data = map[string]interface{}{"user_id": 414243, "role": 11, "devices": map[string]string{"ios_expired_at": time.Now().String(), "android_expired_at": time.Now().String()}, "a": 42}
 	edData = map[string]interface{}{"user_id": 42, "role": 11}
 
-	// Тестування навантаження
 	fmt.Println("Checking scale load")
 
 	for i := 1; i < 10; i++ {
-		// Массив для зберігання значень, що повертаються від Q
 		var values []string
-		// var yo map[string]interface{}
 
-		// When Q
 		fmt.Println("when creates 40k tokens with Turbo Queue")
 		start := time.Now()
 		for i := 0; i < REQUESTS; i++ {
@@ -150,12 +137,10 @@ func main() {
 		elapsed := time.Since(start).Seconds()
 		fmt.Printf("%.3f seconds\n", elapsed)
 
-		// When W
 		fmt.Println("when reads 40k tokens")
-		// index := rand.Intn(REQUESTS)
 		start = time.Now()
 		for i := 0; i < REQUESTS; i++ {
-			crud_jt.Read(values[i]) // Викликаємо W з випадковим значенням
+			crud_jt.Read(values[i])
 		}
 		elapsed = time.Since(start).Seconds()
 		fmt.Printf("%.3f seconds\n", elapsed)
@@ -164,7 +149,7 @@ func main() {
 		fmt.Println("when updates 40k tokens")
 		start = time.Now()
 		for i := 0; i < REQUESTS; i++ {
-			crud_jt.Update(values[i], &edData, nil, nil) // Викликаємо E
+			crud_jt.Update(values[i], &edData, nil, nil)
 		}
 		elapsed = time.Since(start).Seconds()
 		fmt.Printf("%.3f seconds\n", elapsed)
@@ -173,7 +158,7 @@ func main() {
 		fmt.Println("When deletes 40k tokens")
 		start = time.Now()
 		for i := 0; i < REQUESTS; i++ {
-			crud_jt.Delete(values[i]) // Викликаємо R
+			crud_jt.Delete(values[i])
 		}
 		elapsed = time.Since(start).Seconds()
 		fmt.Printf("%.3f seconds\n", elapsed)
@@ -183,26 +168,22 @@ func main() {
 	fmt.Println("when caches after read from file system")
 	const LIMIT_ON_READ_FOR_CACHE = 2
 
-	// Створення списку для зберігання попередніх значень
 	var previousValues []string
 
-	// Виконуємо Q для кількості запитів
 	for i := 0; i < REQUESTS; i++ {
 		token, _ := crud_jt.Create(&data, nil, nil)
 		previousValues = append(previousValues, token)
 	}
 
-	// Виконуємо ще одну серію запитів до Q
 	for i := 0; i < REQUESTS; i++ {
 		crud_jt.Create(&data, nil, nil)
 	}
 
-	// Виконуємо кешування з функцією W для попередніх значень
 	for i := 0; i < LIMIT_ON_READ_FOR_CACHE; i++ {
 		start := time.Now()
 
 		for j := 0; j < REQUESTS; j++ {
-			crud_jt.Read(previousValues[j]) // Виконуємо W для кожного попереднього значення
+			crud_jt.Read(previousValues[j])
 		}
 
 		elapsed := time.Since(start).Seconds()
