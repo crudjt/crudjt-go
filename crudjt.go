@@ -1,4 +1,4 @@
-package crud_jt
+package crudjt
 
 /*
 #cgo linux,amd64 LDFLAGS: -L${SRCDIR}/native/linux/x86_64 -l store_jt -Wl,-rpath,${SRCDIR}/native/linux/x86_64

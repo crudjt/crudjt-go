@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	crud_jt.Start(crud_jt.Config{
+	crudjt.Start(crudjt.Config{
 		EncryptedKey: "Cm7B68NWsMNNYjzMDREacmpe5sI1o0g40ZC9w1yQW3WOes7Gm59UsittLOHR2dciYiwmaYq98l3tG8h9yXVCxg==",
 	})
 
@@ -24,71 +24,71 @@ func main() {
 	edData := map[string]interface{}{"user_id": 42, "role": 8}
 	expectedEdData := map[string]interface{}{"data": edData}
 
-	value, _ := crud_jt.Create(&data, nil, nil)
+	value, _ := crudjt.Create(&data, nil, nil)
 
-	result, _ := crud_jt.Read(value)
+	result, _ := crudjt.Read(value)
 	j1, _ := json.Marshal(result)
 	j2, _ := json.Marshal(expectedData)
 	fmt.Println(string(j1) == string(j2))
 
-	was_updated, _ := crud_jt.Update(value, &edData, nil, nil)
+	was_updated, _ := crudjt.Update(value, &edData, nil, nil)
 	fmt.Println(was_updated == true)
-	result2, _ := crud_jt.Read(value)
+	result2, _ := crudjt.Read(value)
 
 	j3, _ := json.Marshal(result2)
 	j4, _ := json.Marshal(expectedEdData)
 	fmt.Println(string(j3) == string(j4))
 
-	was_deleted, _ := crud_jt.Delete(value)
+	was_deleted, _ := crudjt.Delete(value)
 	fmt.Println(was_deleted == true)
-	result3, _ := crud_jt.Read(value)
+	result3, _ := crudjt.Read(value)
 	fmt.Println(result3 == nil)
 
 	// with ttl
 	fmt.Println("with ttl")
 	ttl := 5
-	valueWithttl, _ := crud_jt.Create(&data, &ttl, nil)
+	valueWithttl, _ := crudjt.Create(&data, &ttl, nil)
 
 	expectedttl := ttl
 	for i := 0; i < ttl; i++ {
 		expectedJSON, _ := json.Marshal(map[string]interface{}{"metadata": map[string]int{"ttl": expectedttl}, "data": data})
-		result, _ := crud_jt.Read(valueWithttl)
+		result, _ := crudjt.Read(valueWithttl)
 		jsonValue, _ := json.Marshal(result)
 		fmt.Println(string(jsonValue) == string(expectedJSON))
 		expectedttl--
 		time.Sleep(1 * time.Second)
 	}
-	output, _ := crud_jt.Read(valueWithttl)
+	output, _ := crudjt.Read(valueWithttl)
 	fmt.Println(output == nil)
 
 	// when expired ttl
 	fmt.Println("when expired ttl")
 	ttl = 1
-	value, _ = crud_jt.Create(&data, &ttl, nil)
+	value, _ = crudjt.Create(&data, &ttl, nil)
 	time.Sleep(time.Duration(ttl) * time.Second)
-	expired_ttl_output, _ := crud_jt.Read(value)
+	expired_ttl_output, _ := crudjt.Read(value)
 	fmt.Println(expired_ttl_output == nil)
 
-	was_updated, _ = crud_jt.Update(value, &data, nil, nil)
+	was_updated, _ = crudjt.Update(value, &data, nil, nil)
 	fmt.Println(was_updated == false)
 
-	was_deleted, _ = crud_jt.Delete(value)
+	was_deleted, _ = crudjt.Delete(value)
 	fmt.Println(was_deleted == false)
 
 	// with silence_read
 	fmt.Println("with silence_read")
 	silence_read := 6
-	valueWithsilence_read, _ := crud_jt.Create(&data, nil, &silence_read)
+	valueWithsilence_read, _ := crudjt.Create(&data, nil, &silence_read)
 
 	expectedsilence_read := silence_read - 1
 	for i := 0; i < silence_read; i++ {
 		expectedJSON, _ := json.Marshal(map[string]interface{}{"metadata": map[string]int{"silence_read": expectedsilence_read}, "data": data})
-		sr_output, _ := crud_jt.Read(valueWithsilence_read)
+		sr_output, _ := crudjt.Read(valueWithsilence_read)
 		jsonValue, _ := json.Marshal(sr_output)
 		fmt.Println(string(jsonValue) == string(expectedJSON))
 		expectedsilence_read--
 	}
-	sr_output, _ := crud_jt.Read(valueWithsilence_read)
+	sr_output, _ := crudjt.Read(valueWithsilence_read)
 	fmt.Println(sr_output == nil)
 
 	// with ttl and silence_read
@@ -98,14 +98,14 @@ func main() {
 	ttl = 5
 	silence_read = ttl
 
-	valueWithTtlAndsilence_read, _ := crud_jt.Create(&data, &ttl, &silence_read)
+	valueWithTtlAndsilence_read, _ := crudjt.Create(&data, &ttl, &silence_read)
 
 	expectedttl = ttl
 	expectedsilence_read = silence_read - 1
 
 	for i := 0; i < silence_read; i++ {
 		expectedJSON, _ := json.Marshal(map[string]interface{}{"metadata": map[string]int{"ttl": expectedttl, "silence_read": expectedsilence_read}, "data": data})
-		ttl_and_sr_response, _ := crud_jt.Read(valueWithTtlAndsilence_read)
+		ttl_and_sr_response, _ := crudjt.Read(valueWithTtlAndsilence_read)
 		jsonValue, _ := json.Marshal(ttl_and_sr_response)
 
 		fmt.Println(string(jsonValue) == string(expectedJSON))
@@ -115,7 +115,7 @@ func main() {
 		time.Sleep(1 * time.Second)
 	}
 
-	ttl_and_sr_response, _ := crud_jt.Read(valueWithTtlAndsilence_read)
+	ttl_and_sr_response, _ := crudjt.Read(valueWithTtlAndsilence_read)
 	fmt.Println(ttl_and_sr_response == nil)
 
 	const REQUESTS = 40_000
@@ -131,7 +131,7 @@ func main() {
 		fmt.Println("when creates 40k tokens with Turbo Queue")
 		start := time.Now()
 		for i := 0; i < REQUESTS; i++ {
-			token, _ := crud_jt.Create(&data, nil, nil)
+			token, _ := crudjt.Create(&data, nil, nil)
 			values = append(values, token)
 		}
 		elapsed := time.Since(start).Seconds()
@@ -140,7 +140,7 @@ func main() {
 		fmt.Println("when reads 40k tokens")
 		start = time.Now()
 		for i := 0; i < REQUESTS; i++ {
-			crud_jt.Read(values[i])
+			crudjt.Read(values[i])
 		}
 		elapsed = time.Since(start).Seconds()
 		fmt.Printf("%.3f seconds\n", elapsed)
@@ -149,7 +149,7 @@ func main() {
 		fmt.Println("when updates 40k tokens")
 		start = time.Now()
 		for i := 0; i < REQUESTS; i++ {
-			crud_jt.Update(values[i], &edData, nil, nil)
+			crudjt.Update(values[i], &edData, nil, nil)
 		}
 		elapsed = time.Since(start).Seconds()
 		fmt.Printf("%.3f seconds\n", elapsed)
@@ -158,7 +158,7 @@ func main() {
 		fmt.Println("When deletes 40k tokens")
 		start = time.Now()
 		for i := 0; i < REQUESTS; i++ {
-			crud_jt.Delete(values[i])
+			crudjt.Delete(values[i])
 		}
 		elapsed = time.Since(start).Seconds()
 		fmt.Printf("%.3f seconds\n", elapsed)
@@ -171,19 +171,19 @@ func main() {
 	var previousValues []string
 
 	for i := 0; i < REQUESTS; i++ {
-		token, _ := crud_jt.Create(&data, nil, nil)
+		token, _ := crudjt.Create(&data, nil, nil)
 		previousValues = append(previousValues, token)
 	}
 
 	for i := 0; i < REQUESTS; i++ {
-		crud_jt.Create(&data, nil, nil)
+		crudjt.Create(&data, nil, nil)
 	}
 
 	for i := 0; i < LIMIT_ON_READ_FOR_CACHE; i++ {
 		start := time.Now()
 
 		for j := 0; j < REQUESTS; j++ {
-			crud_jt.Read(previousValues[j])
+			crudjt.Read(previousValues[j])
 		}
 
 		elapsed := time.Since(start).Seconds()

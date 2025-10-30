@@ -1,20 +1,15 @@
 #ifndef STORE_JT_H
 #define STORE_JT_H
 
-#include <stdint.h>  // Для сумісності з типами Rust
-#include <stddef.h>  // Для size_t
-#include <stdbool.h> // Для bool
-#include <stdlib.h>  // Для malloc, free
-#include <stdio.h>   // Для printf (якщо потрібно)
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-// Оголошення функції з Rust
-// void __encrypted_key(const char *key);
-//
-// void __store_jt_path(const char *path_to_db);
 
 const char* start_store_jt(const char *key, const char *path_to_db);
 

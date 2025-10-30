@@ -1,4 +1,4 @@
-module crud_jt
+module crudjt
 
 go 1.24.1
 

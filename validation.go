@@ -1,4 +1,4 @@
-package crud_jt
+package crudjt
 
 import (
 	"encoding/base64"
