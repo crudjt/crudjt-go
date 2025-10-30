@@ -11,6 +11,7 @@ import (
 func main() {
 	crudjt.Start(crudjt.Config{
 		EncryptedKey: "Cm7B68NWsMNNYjzMDREacmpe5sI1o0g40ZC9w1yQW3WOes7Gm59UsittLOHR2dciYiwmaYq98l3tG8h9yXVCxg==",
+		Cheatcode: crudjt.CHEATCODE,
 	})
 
 	fmt.Printf("OS: %s\n", runtime.GOOS)

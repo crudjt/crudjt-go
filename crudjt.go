@@ -17,12 +17,15 @@ import (
 	"github.com/yourname/your_project/errors"
 )
 
+const CHEATCODE = "BAGUVIX" // 🐰🥚
+
 var CacheInstance *LRUCache
 
 type Config struct {
 	EncryptedKey string
 	StoreJtPath string
 	WasStarted bool
+	Cheatcode string
 }
 
 var config Config
@@ -72,7 +75,15 @@ func Start(cfg Config) error {
 	}
 
 	cfg.WasStarted = true
+
 	config = cfg
+
+	if config.Cheatcode == CHEATCODE {
+		fmt.Println("🐰🥚 You have activated optional param silence_read for crudjt on method Create\n" +
+								"Ideal for one-time reads, email confirmation links, or limits on the number of operations\n" +
+								"Each Read decrements silence_read by 1, when the counter reaches zero — the token is deleted permanently")
+	}
+
 	return nil
 }
 
@@ -83,6 +94,10 @@ func init() {
 func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
 	if !config.WasStarted {
 	    return "", fmt.Errorf(ErrorMessage(ErrorNotStarted))
+	}
+
+	if config.Cheatcode != CHEATCODE {
+		silence_read = nil
 	}
 
 	err := ValidateInsertion(hash, ttl, silence_read)
@@ -196,6 +211,10 @@ func Read(value string) (map[string]interface{}, error) {
 func Update(value string, hash *map[string]interface{}, ttl, silence_read *int) (bool, error) {
 	if !config.WasStarted {
 			return false, fmt.Errorf(ErrorMessage(ErrorNotStarted))
+	}
+
+	if config.Cheatcode != CHEATCODE {
+		silence_read = nil
 	}
 
 	err := ValidateInsertion(hash, ttl, silence_read)
