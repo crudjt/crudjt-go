@@ -14,7 +14,15 @@ import (
 	"unsafe"
   "encoding/json"
   "fmt"
-	"github.com/yourname/your_project/errors"
+	"github.com/VladAkymov/crudjt/errors"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	// "crudjt/internal/grpc"
+	tokenpb "github.com/VladAkymov/crudjt/proto"
+  grpcserver "github.com/VladAkymov/crudjt/internal/grpc"
+	"log"
+	"net"
 )
 
 const CHEATCODE = "BAGUVIX" // 🐰🥚
@@ -74,6 +82,11 @@ func Start(cfg Config) error {
 		return(fmt.Errorf("Unknown error code %s: %s", res.Code, res.ErrorMessage))
 	}
 
+	grpc := StartGRPCServer()
+	if grpc != nil {
+		log.Println("Failed to start gRPC:", grpc)
+	}
+
 	cfg.WasStarted = true
 
 	config = cfg
@@ -87,8 +100,37 @@ func Start(cfg Config) error {
 	return nil
 }
 
+func StartGRPCServer() error {
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		return err
+	}
+
+	s := grpc.NewServer()
+	tokenpb.RegisterTokenServiceServer(s, &grpcserver.Server{})
+
+	log.Println("gRPC server started on :50051")
+
+	go func() {
+		if err := s.Serve(lis); err != nil {
+			log.Printf("gRPC server stopped: %v", err)
+		}
+	}()
+
+	return nil
+}
+
+var grpcClient tokenpb.TokenServiceClient
+
 func init() {
 	CacheInstance = NewLRUCache(OriginalRead)
+
+	conn, _ := grpc.Dial(
+		"localhost:50051",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+
+	grpcClient = tokenpb.NewTokenServiceClient(conn)
 }
 
 func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
@@ -149,6 +191,35 @@ func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error
 	defer C.free(unsafe.Pointer(ptr))
 	return token, nil
 }
+
+// func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
+// 	packed, err := msgpack.Marshal(data)
+// 	if err != nil {
+// 		return "", err
+// 	}
+//
+// 	ttlVal := int64(-1)
+// 	if ttl != nil {
+// 		ttlVal = *ttl
+// 	}
+//
+// 	silenceVal := int32(-1)
+// 	if silenceW != nil {
+// 		silenceVal = *silenceW
+// 	}
+//
+// 	resp, err := client.CreateToken(context.Background(), &tokenpb.CreateTokenRequest{
+// 		PackedData: packed,
+// 		Ttl: ttlVal,
+// 		SilenceRead: silenceVal
+// 	})
+//
+// 	if err != nil {
+// 		return "", err
+// 	}
+//
+// 	token := resp.Token
+// }
 
 func OriginalRead(value string) {
 	cValue := C.CString(value)
@@ -281,3 +352,8 @@ func Delete(value string) (bool, error) {
 	CacheInstance.Delete(value)
 	return (ptr == 1), nil
 }
+
+
+// start gRPC server
+
+// end gRPC server

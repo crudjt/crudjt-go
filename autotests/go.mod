@@ -2,14 +2,18 @@ module autotests
 
 go 1.24.1
 
-require github.com/yourname/your_project v0.0.0
-require github.com/yourname/your_project/errors v0.0.0
+require github.com/VladAkymov/crudjt v0.0.0
 
 require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
+	google.golang.org/grpc v1.78.0 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/yourname/your_project => ../
-replace github.com/yourname/your_project/errors => ../errors
+replace github.com/VladAkymov/crudjt => ../

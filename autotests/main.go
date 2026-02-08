@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"runtime"
 	"time"
-  "github.com/yourname/your_project"
+  "github.com/VladAkymov/crudjt"
 )
 
 func main() {
