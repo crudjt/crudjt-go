@@ -20,9 +20,9 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	// "crudjt/internal/grpc"
 	tokenpb "github.com/VladAkymov/crudjt/proto"
-  grpcserver "github.com/VladAkymov/crudjt/internal/grpc"
 	"log"
 	"net"
+	"context"
 )
 
 const CHEATCODE = "BAGUVIX" // 🐰🥚
@@ -34,6 +34,10 @@ type Config struct {
 	StoreJtPath string
 	WasStarted bool
 	Cheatcode string
+}
+
+type grpcServer struct {
+	tokenpb.UnimplementedTokenServiceServer
 }
 
 var config Config
@@ -107,7 +111,7 @@ func StartGRPCServer() error {
 	}
 
 	s := grpc.NewServer()
-	tokenpb.RegisterTokenServiceServer(s, &grpcserver.Server{})
+	tokenpb.RegisterTokenServiceServer(s, &grpcServer{})
 
 	log.Println("gRPC server started on :50051")
 
@@ -133,7 +137,7 @@ func init() {
 	grpcClient = tokenpb.NewTokenServiceClient(conn)
 }
 
-func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
+func OriginalCreate(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
 	if !config.WasStarted {
 	    return "", fmt.Errorf(ErrorMessage(ErrorNotStarted))
 	}
@@ -192,34 +196,25 @@ func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error
 	return token, nil
 }
 
-// func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
-// 	packed, err := msgpack.Marshal(data)
-// 	if err != nil {
-// 		return "", err
-// 	}
-//
-// 	ttlVal := int64(-1)
-// 	if ttl != nil {
-// 		ttlVal = *ttl
-// 	}
-//
-// 	silenceVal := int32(-1)
-// 	if silenceW != nil {
-// 		silenceVal = *silenceW
-// 	}
-//
-// 	resp, err := client.CreateToken(context.Background(), &tokenpb.CreateTokenRequest{
-// 		PackedData: packed,
-// 		Ttl: ttlVal,
-// 		SilenceRead: silenceVal
-// 	})
-//
-// 	if err != nil {
-// 		return "", err
-// 	}
-//
-// 	token := resp.Token
-// }
+func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
+	packed, err := msgpack.Marshal(hash)
+		if err != nil {
+			return "", err
+		}
+
+		req := &tokenpb.CreateTokenRequest{
+			PackedData: packed,
+			Ttl: intPtrToInt64(ttl),
+			SilenceRead: intPtrToInt64(silence_read),
+		}
+
+		resp, err := grpcClient.CreateToken(context.Background(), req)
+		if err != nil {
+			return "", err
+		}
+
+		return resp.Token, nil
+}
 
 func OriginalRead(value string) {
 	cValue := C.CString(value)
@@ -353,7 +348,42 @@ func Delete(value string) (bool, error) {
 	return (ptr == 1), nil
 }
 
-
 // start gRPC server
+func (s *grpcServer) CreateToken(
+	ctx context.Context,
+	req *tokenpb.CreateTokenRequest,
+) (*tokenpb.CreateTokenResponse, error) {
+
+	data := map[string]any{}
+	if err := msgpack.Unmarshal(req.PackedData, &data); err != nil {
+		return nil, err
+	}
+
+	var ttlInt *int
+	if req.Ttl != -1 {
+		v := int(req.Ttl)
+		ttlInt = &v
+	}
+
+	var silenceInt *int
+	if req.SilenceRead != -1 {
+		v := int(req.SilenceRead)
+		silenceInt = &v
+	}
+
+	token, err := OriginalCreate(&data, ttlInt, silenceInt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tokenpb.CreateTokenResponse{Token: token}, nil
+}
 
 // end gRPC server
+
+func intPtrToInt64(v *int) int64 {
+	if v == nil {
+		return -1 // використовуємо -1 як "nil" для proto
+	}
+	return int64(*v)
+}
