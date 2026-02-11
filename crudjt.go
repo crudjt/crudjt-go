@@ -86,10 +86,10 @@ func Start(cfg Config) error {
 		return(fmt.Errorf("Unknown error code %s: %s", res.Code, res.ErrorMessage))
 	}
 
-	grpc := StartGRPCServer()
-	if grpc != nil {
-		log.Println("Failed to start gRPC:", grpc)
-	}
+	// grpc := StartGRPCServer()
+	// if grpc != nil {
+	// 	log.Println("Failed to start gRPC:", grpc)
+	// }
 
 	cfg.WasStarted = true
 
@@ -127,7 +127,7 @@ func StartGRPCServer() error {
 var grpcClient tokenpb.TokenServiceClient
 
 func init() {
-	CacheInstance = NewLRUCache(OriginalRead)
+	CacheInstance = NewLRUCache(ReadNif)
 
 	conn, _ := grpc.Dial(
 		"localhost:50051",
@@ -140,10 +140,6 @@ func init() {
 func OriginalCreate(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
 	if !config.WasStarted {
 	    return "", fmt.Errorf(ErrorMessage(ErrorNotStarted))
-	}
-
-	if config.Cheatcode != CHEATCODE {
-		silence_read = nil
 	}
 
 	err := ValidateInsertion(hash, ttl, silence_read)
@@ -197,7 +193,7 @@ func OriginalCreate(hash *map[string]interface{}, ttl, silence_read *int) (strin
 }
 
 func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
-	packed, err := msgpack.Marshal(hash)
+	packed, err := msgpack.Marshal(*hash)
 		if err != nil {
 			return "", err
 		}
@@ -209,6 +205,8 @@ func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error
 		}
 
 		resp, err := grpcClient.CreateToken(context.Background(), req)
+		// fmt.Println(resp)
+		// fmt.Println(err)
 		if err != nil {
 			return "", err
 		}
@@ -216,7 +214,7 @@ func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error
 		return resp.Token, nil
 }
 
-func OriginalRead(value string) {
+func ReadNif(value string) {
 	cValue := C.CString(value)
 	defer C.free(unsafe.Pointer(cValue))
 
@@ -224,7 +222,7 @@ func OriginalRead(value string) {
 	defer C.free(unsafe.Pointer(ptr))
 }
 
-func Read(value string) (map[string]interface{}, error) {
+func OriginalRead(value string) (map[string]interface{}, error) {
 	if !config.WasStarted {
 			return nil, fmt.Errorf(ErrorMessage(ErrorNotStarted))
 	}
@@ -274,7 +272,25 @@ func Read(value string) (map[string]interface{}, error) {
 	return data, nil
 }
 
-func Update(value string, hash *map[string]interface{}, ttl, silence_read *int) (bool, error) {
+func Read(value string) (map[string]interface{}, error) {
+	req := &tokenpb.ReadTokenRequest{
+			Token: value,
+		}
+
+	resp, err := grpcClient.ReadToken(context.Background(), req)
+	if err != nil {
+		return nil, err
+	}
+
+	data := map[string]any{}
+	if err := msgpack.Unmarshal(resp.PackedData, &data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func OriginalUpdate(value string, hash *map[string]interface{}, ttl, silence_read *int) (bool, error) {
 	if !config.WasStarted {
 			return false, fmt.Errorf(ErrorMessage(ErrorNotStarted))
 	}
@@ -330,7 +346,28 @@ func Update(value string, hash *map[string]interface{}, ttl, silence_read *int) 
 	return bool, nil
 }
 
-func Delete(value string) (bool, error) {
+func Update(value string, hash *map[string]interface{}, ttl, silence_read *int) (bool, error) {
+	packed, err := msgpack.Marshal(hash)
+	if err != nil {
+		return false, err
+	}
+
+	req := &tokenpb.UpdateTokenRequest{
+		Token: value,
+		PackedData: packed,
+		Ttl: intPtrToInt64(ttl),
+		SilenceRead: intPtrToInt64(silence_read),
+	}
+
+	resp, err := grpcClient.UpdateToken(context.Background(), req)
+	if err != nil {
+		return false, err
+	}
+
+	return resp.Result, nil
+}
+
+func OriginalDelete(value string) (bool, error) {
 	if !config.WasStarted {
 			return false, fmt.Errorf(ErrorMessage(ErrorNotStarted))
 	}
@@ -346,6 +383,19 @@ func Delete(value string) (bool, error) {
 	ptr := C.__delete(cValue)
 	CacheInstance.Delete(value)
 	return (ptr == 1), nil
+}
+
+func Delete(value string) (bool, error) {
+	req := &tokenpb.DeleteTokenRequest{
+		Token: value,
+	}
+
+	resp, err := grpcClient.DeleteToken(context.Background(), req)
+	if err != nil {
+		return false, err
+	}
+
+	return resp.Result, nil
 }
 
 // start gRPC server
@@ -379,6 +429,57 @@ func (s *grpcServer) CreateToken(
 	return &tokenpb.CreateTokenResponse{Token: token}, nil
 }
 
+func ReadToken(token string) (map[string]any, error) {
+	req := &tokenpb.ReadTokenRequest{
+		Token: token,
+	}
+
+	resp, err := grpcClient.ReadToken(context.Background(), req)
+	if err != nil {
+		return nil, err
+	}
+
+	data := map[string]any{}
+	if err := msgpack.Unmarshal(resp.PackedData, &data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func UpdateToken(token string, data map[string]any, ttl, silenceW *int) (bool, error) {
+	packed, err := msgpack.Marshal(data)
+	if err != nil {
+		return false, err
+	}
+
+	req := &tokenpb.UpdateTokenRequest{
+		Token: token,
+		PackedData: packed,
+		Ttl: intPtrToInt64(ttl),
+		SilenceRead: intPtrToInt64(silenceW),
+	}
+
+	resp, err := grpcClient.UpdateToken(context.Background(), req)
+	if err != nil {
+		return false, err
+	}
+
+	return resp.Result, nil
+}
+
+func DeleteToken(token string) (bool, error) {
+	req := &tokenpb.DeleteTokenRequest{
+		Token: token,
+	}
+
+	resp, err := grpcClient.DeleteToken(context.Background(), req)
+	if err != nil {
+		return false, err
+	}
+
+	return resp.Result, nil
+}
 // end gRPC server
 
 func intPtrToInt64(v *int) int64 {
