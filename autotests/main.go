@@ -11,7 +11,6 @@ import (
 func main() {
 	crudjt.Start(crudjt.Config{
 		EncryptedKey: "Cm7B68NWsMNNYjzMDREacmpe5sI1o0g40ZC9w1yQW3WOes7Gm59UsittLOHR2dciYiwmaYq98l3tG8h9yXVCxg==",
-		Cheatcode: crudjt.CHEATCODE,
 	})
 
 	fmt.Printf("OS: %s\n", runtime.GOOS)
@@ -129,7 +128,7 @@ func main() {
 	for i := 1; i < 10; i++ {
 		var values []string
 
-		fmt.Println("when creates 40k tokens with Turbo Queue")
+		fmt.Println("when creates 40k tokens")
 		start := time.Now()
 		for i := 0; i < REQUESTS; i++ {
 			token, _ := crudjt.Create(&data, nil, nil)

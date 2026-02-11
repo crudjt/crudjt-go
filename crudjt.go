@@ -25,15 +25,12 @@ import (
 	"context"
 )
 
-const CHEATCODE = "BAGUVIX" // 🐰🥚
-
 var CacheInstance *LRUCache
 
 type Config struct {
 	EncryptedKey string
 	StoreJtPath string
 	WasStarted bool
-	Cheatcode string
 }
 
 type grpcServer struct {
@@ -94,12 +91,6 @@ func Start(cfg Config) error {
 	cfg.WasStarted = true
 
 	config = cfg
-
-	if config.Cheatcode == CHEATCODE {
-		fmt.Println("🐰🥚 You have activated optional param silence_read for crudjt on method Create\n" +
-								"Ideal for one-time reads, email confirmation links, or limits on the number of operations\n" +
-								"Each Read decrements silence_read by 1, when the counter reaches zero — the token is deleted permanently")
-	}
 
 	return nil
 }
@@ -293,10 +284,6 @@ func Read(value string) (map[string]interface{}, error) {
 func OriginalUpdate(value string, hash *map[string]interface{}, ttl, silence_read *int) (bool, error) {
 	if !config.WasStarted {
 			return false, fmt.Errorf(ErrorMessage(ErrorNotStarted))
-	}
-
-	if config.Cheatcode != CHEATCODE {
-		silence_read = nil
 	}
 
 	err := ValidateInsertion(hash, ttl, silence_read)
