@@ -20,26 +20,48 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	// "crudjt/internal/grpc"
 	tokenpb "github.com/VladAkymov/crudjt/proto"
-	"log"
 	"net"
 	"context"
 )
 
 var CacheInstance *LRUCache
 
-type Config struct {
+type mode int
+
+const (
+	modeNone mode = iota
+	modeMaster
+	modeClient
+)
+
+type ServerConfig struct {
 	EncryptedKey string
 	StoreJtPath string
-	WasStarted bool
+	Host string
+	Port int
 }
 
 type grpcServer struct {
 	tokenpb.UnimplementedTokenServiceServer
 }
 
-var config Config
+type ClientConfig struct {
+	Address string
+}
 
-func Start(cfg Config) error {
+type runtimeState struct {
+	mode mode
+	grpcServer *grpc.Server
+	grpcClient tokenpb.TokenServiceClient
+}
+
+var state runtimeState
+
+func StartMaster(cfg ServerConfig) error {
+	if state.mode != modeNone {
+		return fmt.Errorf("CRUDJT already initialized")
+	}
+
 	err := ValidateEncryptedKey(cfg.EncryptedKey)
 	if err != nil {
 		return err
@@ -47,9 +69,6 @@ func Start(cfg Config) error {
 
 	if cfg.EncryptedKey == "" {
 		return fmt.Errorf(ErrorMessage(ErrorEncryptedKeyNotSet))
-	}
-	if cfg.WasStarted {
-		return fmt.Errorf(ErrorMessage(ErrorAlreadyStarted))
 	}
 
 	cEncryptedKey := C.CString(cfg.EncryptedKey)
@@ -83,36 +102,35 @@ func Start(cfg Config) error {
 		return(fmt.Errorf("Unknown error code %s: %s", res.Code, res.ErrorMessage))
 	}
 
-	// grpc := StartGRPCServer()
-	// if grpc != nil {
-	// 	log.Println("Failed to start gRPC:", grpc)
-	// }
-
-	cfg.WasStarted = true
-
-	config = cfg
-
-	return nil
-}
-
-func StartGRPCServer() error {
-	lis, err := net.Listen("tcp", ":50051")
+	server, err := StartGRPCServer(cfg)
 	if err != nil {
 		return err
 	}
 
-	s := grpc.NewServer()
-	tokenpb.RegisterTokenServiceServer(s, &grpcServer{})
+	state.grpcServer = server
+	state.mode = modeMaster
 
-	log.Println("gRPC server started on :50051")
+	// cfg.WasStarted = true
 
-	go func() {
-		if err := s.Serve(lis); err != nil {
-			log.Printf("gRPC server stopped: %v", err)
-		}
-	}()
+	// config = cfg
 
 	return nil
+}
+
+func StartGRPCServer(cfg ServerConfig) (*grpc.Server, error) {
+	address := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+
+	lis, err := net.Listen("tcp", address)
+	if err != nil {
+		return nil, err
+	}
+
+	server := grpc.NewServer()
+	tokenpb.RegisterTokenServiceServer(server, &grpcServer{})
+
+	go server.Serve(lis)
+
+	return server, nil
 }
 
 var grpcClient tokenpb.TokenServiceClient
@@ -129,8 +147,8 @@ func init() {
 }
 
 func OriginalCreate(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
-	if !config.WasStarted {
-	    return "", fmt.Errorf(ErrorMessage(ErrorNotStarted))
+	if state.mode != modeNone {
+		return "", fmt.Errorf("CRUDJT already initialized")
 	}
 
 	err := ValidateInsertion(hash, ttl, silence_read)
@@ -214,8 +232,8 @@ func ReadNif(value string) {
 }
 
 func OriginalRead(value string) (map[string]interface{}, error) {
-	if !config.WasStarted {
-			return nil, fmt.Errorf(ErrorMessage(ErrorNotStarted))
+	if state.mode != modeNone {
+		return nil, fmt.Errorf("CRUDJT already initialized")
 	}
 
 	read_err := ValidateToken(value)
@@ -282,8 +300,8 @@ func Read(value string) (map[string]interface{}, error) {
 }
 
 func OriginalUpdate(value string, hash *map[string]interface{}, ttl, silence_read *int) (bool, error) {
-	if !config.WasStarted {
-			return false, fmt.Errorf(ErrorMessage(ErrorNotStarted))
+	if state.mode != modeNone {
+		return false, fmt.Errorf("CRUDJT already initialized")
 	}
 
 	err := ValidateInsertion(hash, ttl, silence_read)
@@ -355,8 +373,8 @@ func Update(value string, hash *map[string]interface{}, ttl, silence_read *int) 
 }
 
 func OriginalDelete(value string) (bool, error) {
-	if !config.WasStarted {
-			return false, fmt.Errorf(ErrorMessage(ErrorNotStarted))
+	if state.mode != modeNone {
+		return false, fmt.Errorf("CRUDJT already initialized")
 	}
 
 	delete_err := ValidateToken(value)
