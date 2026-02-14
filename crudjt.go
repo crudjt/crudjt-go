@@ -18,10 +18,10 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	// "crudjt/internal/grpc"
 	tokenpb "github.com/VladAkymov/crudjt/proto"
 	"net"
 	"context"
+	"strconv"
 )
 
 var CacheInstance *LRUCache
@@ -46,7 +46,8 @@ type grpcServer struct {
 }
 
 type ClientConfig struct {
-	Address string
+	Host string
+	Port int
 }
 
 type runtimeState struct {
@@ -59,7 +60,7 @@ var state runtimeState
 
 func StartMaster(cfg ServerConfig) error {
 	if state.mode != modeNone {
-		return fmt.Errorf("CRUDJT already initialized")
+		return fmt.Errorf(ErrorMessage(ErrorAlreadyStarted))
 	}
 
 	err := ValidateEncryptedKey(cfg.EncryptedKey)
@@ -78,12 +79,12 @@ func StartMaster(cfg ServerConfig) error {
 	if cfg.StoreJtPath != "" {
 	    cStoreJtPath = C.CString(cfg.StoreJtPath)
 	    defer C.free(unsafe.Pointer(cStoreJtPath))
-	} else {
-	    cStoreJtPath = nil
 	}
-	defer C.free(unsafe.Pointer(cStoreJtPath))
 
 	ptr := C.start_store_jt(cEncryptedKey, cStoreJtPath)
+	if ptr == nil {
+	    return fmt.Errorf("start_store_jt returned nil")
+	}
 	defer C.free(unsafe.Pointer(ptr))
 
 	response := C.GoString(ptr)
@@ -110,9 +111,32 @@ func StartMaster(cfg ServerConfig) error {
 	state.grpcServer = server
 	state.mode = modeMaster
 
-	// cfg.WasStarted = true
+	return nil
+}
 
-	// config = cfg
+func ConnectToMaster(cfg ClientConfig) error {
+	host := cfg.Host
+	if host == "" {
+		host = "localhost"
+	}
+
+	port := cfg.Port
+	if port == 0 {
+		port = 50051
+	}
+
+	address := net.JoinHostPort(host, strconv.Itoa(port))
+
+	conn, err := grpc.Dial(
+		address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return err
+	}
+
+	state.grpcClient = tokenpb.NewTokenServiceClient(conn)
+	state.mode = modeClient
 
 	return nil
 }
@@ -137,20 +161,9 @@ var grpcClient tokenpb.TokenServiceClient
 
 func init() {
 	CacheInstance = NewLRUCache(ReadNif)
-
-	conn, _ := grpc.Dial(
-		"localhost:50051",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-
-	grpcClient = tokenpb.NewTokenServiceClient(conn)
 }
 
 func OriginalCreate(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
-	if state.mode != modeNone {
-		return "", fmt.Errorf("CRUDJT already initialized")
-	}
-
 	err := ValidateInsertion(hash, ttl, silence_read)
 	if err != nil {
 		return "", err
@@ -202,25 +215,33 @@ func OriginalCreate(hash *map[string]interface{}, ttl, silence_read *int) (strin
 }
 
 func Create(hash *map[string]interface{}, ttl, silence_read *int) (string, error) {
-	packed, err := msgpack.Marshal(*hash)
-		if err != nil {
-			return "", err
-		}
+	switch state.mode {
 
-		req := &tokenpb.CreateTokenRequest{
-			PackedData: packed,
-			Ttl: intPtrToInt64(ttl),
-			SilenceRead: intPtrToInt64(silence_read),
-		}
+	case modeMaster:
+		return OriginalCreate(hash, ttl, silence_read)
 
-		resp, err := grpcClient.CreateToken(context.Background(), req)
-		// fmt.Println(resp)
-		// fmt.Println(err)
-		if err != nil {
-			return "", err
-		}
+	case modeClient:
+		packed, err := msgpack.Marshal(*hash)
+			if err != nil {
+				return "", err
+			}
 
-		return resp.Token, nil
+			req := &tokenpb.CreateTokenRequest{
+				PackedData: packed,
+				Ttl: intPtrToInt64(ttl),
+				SilenceRead: intPtrToInt64(silence_read),
+			}
+
+			resp, err := state.grpcClient.CreateToken(context.Background(), req)
+			if err != nil {
+				return "", err
+			}
+
+			return resp.Token, nil
+
+	default:
+		return "", fmt.Errorf(ErrorMessage(ErrorAlreadyStarted))
+	}
 }
 
 func ReadNif(value string) {
@@ -232,10 +253,6 @@ func ReadNif(value string) {
 }
 
 func OriginalRead(value string) (map[string]interface{}, error) {
-	if state.mode != modeNone {
-		return nil, fmt.Errorf("CRUDJT already initialized")
-	}
-
 	read_err := ValidateToken(value)
 	if read_err != nil {
 		return nil, read_err
@@ -282,28 +299,34 @@ func OriginalRead(value string) (map[string]interface{}, error) {
 }
 
 func Read(value string) (map[string]interface{}, error) {
-	req := &tokenpb.ReadTokenRequest{
-			Token: value,
+	switch state.mode {
+
+	case modeMaster:
+		return OriginalRead(value)
+
+	case modeClient:
+		req := &tokenpb.ReadTokenRequest{
+				Token: value,
+			}
+
+		resp, err := state.grpcClient.ReadToken(context.Background(), req)
+		if err != nil {
+			return nil, err
 		}
 
-	resp, err := grpcClient.ReadToken(context.Background(), req)
-	if err != nil {
-		return nil, err
-	}
+		data := map[string]any{}
+		if err := msgpack.Unmarshal(resp.PackedData, &data); err != nil {
+			return nil, err
+		}
 
-	data := map[string]any{}
-	if err := msgpack.Unmarshal(resp.PackedData, &data); err != nil {
-		return nil, err
-	}
+		return data, nil
 
-	return data, nil
+	default:
+		return nil, fmt.Errorf(ErrorMessage(ErrorAlreadyStarted))
+	}
 }
 
 func OriginalUpdate(value string, hash *map[string]interface{}, ttl, silence_read *int) (bool, error) {
-	if state.mode != modeNone {
-		return false, fmt.Errorf("CRUDJT already initialized")
-	}
-
 	err := ValidateInsertion(hash, ttl, silence_read)
 	if err != nil {
 		return false, err
@@ -352,31 +375,37 @@ func OriginalUpdate(value string, hash *map[string]interface{}, ttl, silence_rea
 }
 
 func Update(value string, hash *map[string]interface{}, ttl, silence_read *int) (bool, error) {
-	packed, err := msgpack.Marshal(hash)
-	if err != nil {
-		return false, err
-	}
+	switch state.mode {
 
-	req := &tokenpb.UpdateTokenRequest{
-		Token: value,
-		PackedData: packed,
-		Ttl: intPtrToInt64(ttl),
-		SilenceRead: intPtrToInt64(silence_read),
-	}
+	case modeMaster:
+		return OriginalUpdate(value, hash, ttl, silence_read)
 
-	resp, err := grpcClient.UpdateToken(context.Background(), req)
-	if err != nil {
-		return false, err
-	}
+	case modeClient:
+		packed, err := msgpack.Marshal(hash)
+		if err != nil {
+			return false, err
+		}
 
-	return resp.Result, nil
+		req := &tokenpb.UpdateTokenRequest{
+			Token: value,
+			PackedData: packed,
+			Ttl: intPtrToInt64(ttl),
+			SilenceRead: intPtrToInt64(silence_read),
+		}
+
+		resp, err := state.grpcClient.UpdateToken(context.Background(), req)
+		if err != nil {
+			return false, err
+		}
+
+		return resp.Result, nil
+
+	default:
+		return false, fmt.Errorf(ErrorMessage(ErrorAlreadyStarted))
+	}
 }
 
 func OriginalDelete(value string) (bool, error) {
-	if state.mode != modeNone {
-		return false, fmt.Errorf("CRUDJT already initialized")
-	}
-
 	delete_err := ValidateToken(value)
 	if delete_err != nil {
 		return false, delete_err
@@ -391,19 +420,28 @@ func OriginalDelete(value string) (bool, error) {
 }
 
 func Delete(value string) (bool, error) {
-	req := &tokenpb.DeleteTokenRequest{
-		Token: value,
-	}
+	switch state.mode {
 
-	resp, err := grpcClient.DeleteToken(context.Background(), req)
-	if err != nil {
-		return false, err
-	}
+	case modeMaster:
+		return OriginalDelete(value)
 
-	return resp.Result, nil
+	case modeClient:
+		req := &tokenpb.DeleteTokenRequest{
+			Token: value,
+		}
+
+		resp, err := state.grpcClient.DeleteToken(context.Background(), req)
+		if err != nil {
+			return false, err
+		}
+
+		return resp.Result, nil
+
+	default:
+		return false, fmt.Errorf(ErrorMessage(ErrorAlreadyStarted))
+	}
 }
 
-// start gRPC server
 func (s *grpcServer) CreateToken(
 	ctx context.Context,
 	req *tokenpb.CreateTokenRequest,
@@ -434,62 +472,86 @@ func (s *grpcServer) CreateToken(
 	return &tokenpb.CreateTokenResponse{Token: token}, nil
 }
 
-func ReadToken(token string) (map[string]any, error) {
-	req := &tokenpb.ReadTokenRequest{
-		Token: token,
-	}
+func (s *grpcServer) ReadToken(
+	ctx context.Context,
+	req *tokenpb.ReadTokenRequest,
+) (*tokenpb.ReadTokenResponse, error) {
 
-	resp, err := grpcClient.ReadToken(context.Background(), req)
+	rawToken := req.GetToken()
+
+	resultHash, err := OriginalRead(rawToken)
 	if err != nil {
 		return nil, err
 	}
 
-	data := map[string]any{}
-	if err := msgpack.Unmarshal(resp.PackedData, &data); err != nil {
+	packedData, err := msgpack.Marshal(resultHash)
+	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	return &tokenpb.ReadTokenResponse{
+		PackedData: packedData,
+	}, nil
 }
 
-func UpdateToken(token string, data map[string]any, ttl, silenceW *int) (bool, error) {
-	packed, err := msgpack.Marshal(data)
+func (s *grpcServer) UpdateToken(
+	ctx context.Context,
+	req *tokenpb.UpdateTokenRequest,
+) (*tokenpb.UpdateTokenResponse, error) {
+
+	rawToken := req.GetToken()
+
+	packedData := req.GetPackedData()
+
+	unpacked := make(map[string]interface{})
+	if err := msgpack.Unmarshal(packedData, &unpacked); err != nil {
+		return nil, err
+	}
+
+	var ttlPtr *int
+	if req.GetTtl() != -1 {
+		t := int(req.GetTtl())
+		ttlPtr = &t
+	}
+
+	var silenceWPtr *int
+	if req.GetSilenceRead() != -1 {
+		sw := int(req.GetSilenceRead())
+		silenceWPtr = &sw
+	}
+
+	result, err := OriginalUpdate(rawToken, &unpacked, ttlPtr, silenceWPtr)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	req := &tokenpb.UpdateTokenRequest{
-		Token: token,
-		PackedData: packed,
-		Ttl: intPtrToInt64(ttl),
-		SilenceRead: intPtrToInt64(silenceW),
-	}
-
-	resp, err := grpcClient.UpdateToken(context.Background(), req)
-	if err != nil {
-		return false, err
-	}
-
-	return resp.Result, nil
+	return &tokenpb.UpdateTokenResponse{
+		Result: result,
+	}, nil
 }
 
-func DeleteToken(token string) (bool, error) {
-	req := &tokenpb.DeleteTokenRequest{
-		Token: token,
-	}
+func (s *grpcServer) DeleteToken(
+	ctx context.Context,
+	req *tokenpb.DeleteTokenRequest,
+) (*tokenpb.DeleteTokenResponse, error) {
 
-	resp, err := grpcClient.DeleteToken(context.Background(), req)
+	rawToken := req.GetToken()
+
+	result, err := OriginalDelete(rawToken)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	return resp.Result, nil
+	return &tokenpb.DeleteTokenResponse{
+		Result: result,
+	}, nil
 }
+
 // end gRPC server
 
 func intPtrToInt64(v *int) int64 {
 	if v == nil {
-		return -1 // використовуємо -1 як "nil" для proto
+		return -1
 	}
 	return int64(*v)
 }
