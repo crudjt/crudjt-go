@@ -9,10 +9,8 @@ import (
 )
 
 func main() {
-	re := crudjt.StartMaster(crudjt.ServerConfig	{
+	crudjt.StartMaster(crudjt.ServerConfig	{
 		EncryptedKey: "Cm7B68NWsMNNYjzMDREacmpe5sI1o0g40ZC9w1yQW3WOes7Gm59UsittLOHR2dciYiwmaYq98l3tG8h9yXVCxg==",
-		Host: "127.0.0.1",
-		Port: 50051,
 	})
 
 	fmt.Printf("OS: %s\n", runtime.GOOS)

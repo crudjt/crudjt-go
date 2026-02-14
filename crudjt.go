@@ -34,6 +34,11 @@ const (
 	modeClient
 )
 
+const (
+	DefaultHost = "127.0.0.1"
+	DefaultPort = 50051
+)
+
 type ServerConfig struct {
 	EncryptedKey string
 	StoreJtPath string
@@ -72,6 +77,16 @@ func StartMaster(cfg ServerConfig) error {
 		return fmt.Errorf(ErrorMessage(ErrorEncryptedKeyNotSet))
 	}
 
+	host := cfg.Host
+	if host == "" {
+		host = DefaultHost
+	}
+
+	port := cfg.Port
+	if port == 0 {
+		port = DefaultPort
+	}
+
 	cEncryptedKey := C.CString(cfg.EncryptedKey)
 	defer C.free(unsafe.Pointer(cEncryptedKey))
 
@@ -103,7 +118,8 @@ func StartMaster(cfg ServerConfig) error {
 		return(fmt.Errorf("Unknown error code %s: %s", res.Code, res.ErrorMessage))
 	}
 
-	server, err := StartGRPCServer(cfg)
+	address := fmt.Sprintf("%s:%d", host, port)
+	server, err := StartGRPCServer(address)
 	if err != nil {
 		return err
 	}
@@ -117,12 +133,12 @@ func StartMaster(cfg ServerConfig) error {
 func ConnectToMaster(cfg ClientConfig) error {
 	host := cfg.Host
 	if host == "" {
-		host = "localhost"
+		host = DefaultHost
 	}
 
 	port := cfg.Port
 	if port == 0 {
-		port = 50051
+		port = DefaultPort
 	}
 
 	address := net.JoinHostPort(host, strconv.Itoa(port))
@@ -141,9 +157,7 @@ func ConnectToMaster(cfg ClientConfig) error {
 	return nil
 }
 
-func StartGRPCServer(cfg ServerConfig) (*grpc.Server, error) {
-	address := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-
+func StartGRPCServer(address string) (*grpc.Server, error) {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, err
