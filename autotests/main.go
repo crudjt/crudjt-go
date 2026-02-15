@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"runtime"
 	"time"
+	"os"
   "github.com/VladAkymov/crudjt"
 )
 
 func main() {
 	crudjt.StartMaster(crudjt.ServerConfig	{
-		EncryptedKey: "Cm7B68NWsMNNYjzMDREacmpe5sI1o0g40ZC9w1yQW3WOes7Gm59UsittLOHR2dciYiwmaYq98l3tG8h9yXVCxg==",
+		EncryptedKey: os.Getenv("CRUDJT_ENCRYPTED_KEY"),
 	})
 
 	fmt.Printf("OS: %s\n", runtime.GOOS)
