@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"time"
 	"os"
-  "github.com/VladAkymov/crudjt"
+  "github.com/exwarvlad/crud_jt-go"
 )
 
 func main() {

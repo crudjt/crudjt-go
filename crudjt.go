@@ -14,11 +14,11 @@ import (
 	"unsafe"
   "encoding/json"
   "fmt"
-	"github.com/VladAkymov/crudjt/errors"
+	"github.com/exwarvlad/crud_jt-go/errors"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	tokenpb "github.com/VladAkymov/crudjt/proto"
+	tokenpb "github.com/exwarvlad/crud_jt-go/proto"
 	"net"
 	"context"
 	"strconv"

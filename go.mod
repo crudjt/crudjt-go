@@ -1,4 +1,4 @@
-module github.com/VladAkymov/crudjt
+module github.com/exwarvlad/crud_jt-go
 
 go 1.24.1
 
