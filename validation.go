@@ -21,8 +21,8 @@ const (
 )
 
 var ErrorMessages = map[int]string{
-	ErrorAlreadyStarted: "CRUD_JT already started",
-	ErrorNotStarted: "CRUD_JT has not started",
+	ErrorAlreadyStarted: "CRUDJT already started",
+	ErrorNotStarted: "CRUDJT has not started",
 	ErrorSecretKeyNotSet: "Secret key is blank",
 }
 
