@@ -74,7 +74,7 @@ Typical examples:
 - forked processes
 
 ```go
-import "github.com/crudjt/crudjt-go/v1"
+import "github.com/crudjt/crudjt-go"
 
 crudjt.ConnectToMaster(crudjt.ClientConfig	{
   Host: "127.0.0.1", // default
