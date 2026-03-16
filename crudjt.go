@@ -40,7 +40,7 @@ const (
 )
 
 type ServerConfig struct {
-	EncryptedKey string
+	SecretKey string
 	StoreJtPath string
 	Host string
 	Port int
@@ -68,13 +68,13 @@ func StartMaster(cfg ServerConfig) error {
 		return fmt.Errorf(ErrorMessage(ErrorAlreadyStarted))
 	}
 
-	err := ValidateEncryptedKey(cfg.EncryptedKey)
+	err := ValidateSecretKey(cfg.SecretKey)
 	if err != nil {
 		return err
 	}
 
-	if cfg.EncryptedKey == "" {
-		return fmt.Errorf(ErrorMessage(ErrorEncryptedKeyNotSet))
+	if cfg.SecretKey == "" {
+		return fmt.Errorf(ErrorMessage(ErrorSecretKeyNotSet))
 	}
 
 	host := cfg.Host
@@ -87,8 +87,8 @@ func StartMaster(cfg ServerConfig) error {
 		port = DefaultPort
 	}
 
-	cEncryptedKey := C.CString(cfg.EncryptedKey)
-	defer C.free(unsafe.Pointer(cEncryptedKey))
+	cSecretKey := C.CString(cfg.SecretKey)
+	defer C.free(unsafe.Pointer(cSecretKey))
 
 	var cStoreJtPath *C.char
 	if cfg.StoreJtPath != "" {
@@ -96,7 +96,7 @@ func StartMaster(cfg ServerConfig) error {
 	    defer C.free(unsafe.Pointer(cStoreJtPath))
 	}
 
-	ptr := C.start_store_jt(cEncryptedKey, cStoreJtPath)
+	ptr := C.start_store_jt(cSecretKey, cStoreJtPath)
 	if ptr == nil {
 	    return fmt.Errorf("start_store_jt returned nil")
 	}

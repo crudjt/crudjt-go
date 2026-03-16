@@ -13,13 +13,13 @@ const MaxHashSize = 256
 const (
 	ErrorAlreadyStarted = 0
 	ErrorNotStarted = 1
-	ErrorEncryptedKeyNotSet = 2
+	ErrorSecretKeyNotSet = 2
 )
 
 var ErrorMessages = map[int]string{
 	ErrorAlreadyStarted: "CRUD_JT already started",
 	ErrorNotStarted: "CRUD_JT has not started",
-	ErrorEncryptedKeyNotSet: "Encrypted key is blank",
+	ErrorSecretKeyNotSet: "Secret key is blank",
 }
 
 func ErrorMessage(code int) string {
@@ -36,15 +36,15 @@ func ValidateHashBytesize(hashBytesize int) error {
 	return nil
 }
 
-func ValidateEncryptedKey(key string) error {
+func ValidateSecretKey(key string) error {
 	decoded, err := base64.StdEncoding.Strict().DecodeString(key)
 	if err != nil {
-		return errors.New("'encrypted_key' must be a valid Base64 string")
+		return errors.New("'secret_key' must be a valid Base64 string")
 	}
 
 	size := len(decoded)
 	if size != 32 && size != 48 && size != 64 {
-		return fmt.Errorf("'encrypted_key' must be exactly 32, 48, or 64 bytes. Got %d bytes", size)
+		return fmt.Errorf("'secret_key' must be exactly 32, 48, or 64 bytes. Got %d bytes", size)
 	}
 
 	return nil

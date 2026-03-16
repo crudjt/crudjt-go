@@ -9,7 +9,12 @@ import (
 )
 
 func main() {
-	crudjt.ConnectToMaster(crudjt.ClientConfig	{})
+	crudjt.StartMaster(crudjt.ServerConfig	{
+	  SecretKey: "Cm7B68NWsMNNYjzMDREacmpe5sI1o0g40ZC9w1yQW3WOes7Gm59UsittLOHR2dciYiwmaYq98l3tG8h9yXVCxg==",
+	  StoreJtPath: "path/to/local/storage", // optional
+	  Host: "127.0.0.1", // default
+	  Port: 50051, // default
+	})
 
 	fmt.Printf("OS: %s\n", runtime.GOOS)
 	fmt.Printf("CPU: %s\n", runtime.GOARCH)
