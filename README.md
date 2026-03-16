@@ -159,29 +159,12 @@ result, error := crudjt.Delete("HBmKFXoXgJ46mCqer1WXyQ")
 ```
 
 # Performance
-**40k** requests of **256 bytes** — median over 10 runs  
-ARM64 (Apple M1+), macOS 15.6.1  
-Go 1.23.0/1.24.1
-
-| Function | CRUDJT (Go) | JWT (Go) | redis-session-store (Ruby, Rails 8.0.4) |
-|----------|-------|------|------|
-| C        | 0.387 second | 0.196 second ⭐ | 4.057 seconds |
-| R        | `0.022 second` ![Logo Favicon Light](logos/crud_jt_logo_favicon_white.png#gh-light-mode-only) ![Logo Favicon Dark](logos/crud_jt_logo_favicon_black.png#gh-dark-mode-only) | 0.235 second | 7.011 seconds |
-| U        | `0.479 second` ![Logo Favicon Light](logos/crud_jt_logo_favicon_white.png#gh-light-mode-only) ![Logo Favicon Dark](logos/crud_jt_logo_favicon_black.png#gh-dark-mode-only) | X | 3.49 seconds |
-| D        | `0.247 second` ![Logo Favicon Light](logos/crud_jt_logo_favicon_white.png#gh-light-mode-only) ![Logo Favicon Dark](logos/crud_jt_logo_favicon_black.png#gh-dark-mode-only) | X | 6.589 seconds |
-
-[Full benchmark results](https://github.com/exwarvlad/benchmarks)
+> Metrics will be published after 1.0.0-beta GitHub Actions builds
 
 # Storage (File-backed)  
-Backed by a disk-based B-tree for predictable reads, writes, and deletes
 
 ## Disk footprint  
-**40k** tokens of **256 bytes** each — median over 10 creates  
-darwin23, APFS  
-
-`48 MB`  
-
-[Full disk footprint results](https://github.com/Cm7B68NWsMNNYjzMDREacmpe5sI1o0g40ZC9w1y/disk_footprint)
+> Metrics will be published after 1.0.0-beta GitHub Actions builds
 
 ## Path Lookup Order
 Stored tokens are placed in the **file system** according to the following order
@@ -210,8 +193,11 @@ The library has the following limits and requirements
 
 # Contact & Support
 <p align="center">
-  <img src="logos/crud_jt_logo_favicon_black_160.png#gh-light-mode-only" alt="Visit Light" />
-  <img src="logos/crud_jt_logo_favicon_white_160.png#gh-dark-mode-only" alt="Visit Dark" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="logos/crudjt_favicon_160x160_white_on_dark.svg" width=160 height=160>
+    <source media="(prefers-color-scheme: light)" srcset="logos/crudjt_favicon_160x160_dark_on_white.svg" width=160 height=160>
+    <img alt="Shows a dark favicon in light color mode and a white one in dark color mode" src="logos/crudjt_favicon_160x160_white.png" width=160 height=160>
+  </picture>
 </p>
 
 - **Custom integrations / new features / collaboration**: support@crudjt.com  
