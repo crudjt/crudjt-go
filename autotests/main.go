@@ -6,9 +6,15 @@ import (
 	"runtime"
 	"time"
   "github.com/exwarvlad/crud_jt-go"
+	"os"
 )
 
 func main() {
+	if os.Getenv("CRUDJT_AUTOTEST_ALLOWED") != "true" {
+    fmt.Println("Denied run autotest for this environment. Set environment CRUDJT_AUTOTEST_ALLOWED = 'true'")
+    return
+	}
+
 	crudjt.StartMaster(crudjt.ServerConfig	{
 	  SecretKey: "Cm7B68NWsMNNYjzMDREacmpe5sI1o0g40ZC9w1yQW3WOes7Gm59UsittLOHR2dciYiwmaYq98l3tG8h9yXVCxg==",
 	  StoreJtPath: "path/to/local/storage", // optional
