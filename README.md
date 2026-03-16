@@ -51,7 +51,7 @@ export CRUDJT_SECRET_KEY=$(openssl rand -base64 48)
 
 ```go
 import (
-  "github.com/crudjt/crudjt-go/v1"
+  "github.com/crudjt/crudjt-go"
   "os"
 )
 
