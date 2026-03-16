@@ -105,11 +105,9 @@ token, error := crudjt.Create(&data, &ttl, &silence_read)
 ```
 
 ```go
-data := map[string]interface{}{"user_id": 42, "role": 11}
-
 // To disable token expiration or read limits, pass `nil`
 crudjt.Create(
-  &data,
+  &map[string]interface{}{"user_id": 42, "role": 11},
   nil, // disable TTL
   nil // disable read limit
 )
