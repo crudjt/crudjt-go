@@ -24,7 +24,7 @@ Optimized for vertical scaling on a single server
 # Installation
 
 ```sh
-go get github.com/crudjt/crudjt-go/v1
+go get github.com/crudjt/crudjt-go/v1.0.0-beta.0
 ```
 
 ## How to use
