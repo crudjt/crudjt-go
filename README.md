@@ -1,10 +1,11 @@
 <p align="center">
-  <img src="logos/crud_jt_logo_black.png#gh-light-mode-only" alt="Logo Light" />
-  <img src="logos/crud_jt_logo.png#gh-dark-mode-only" alt="Logo Dark" />
-</p>
-
-<p align="center">
-  Fast, file-backed JSON token for REST APIs with multi-process support
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="logos/crudjt_logo_white_on_dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="logos/crudjt_logo_dark_on_white.svg">
+    <img alt="Shows a dark logo" src="logos/crudjt_logo_dark.png">
+  </picture>
+    </br>
+    Go SDK for the fast, file-backed, scalable JSON token engine
 </p>
 
 <p align="center">
@@ -13,15 +14,12 @@
   </a>
 </p>
 
-## Why?  
-[Escape the JWT trap: predictable login, safe logout](https://medium.com/@CoffeeMainer/jwt-trap-login-logout-under-control-7f4495d6024d)
+> ⚠️ Version 1.0.0-beta — production testing phase   
+> API is stable. Feedback is welcome before the final 1.0.0 release
 
-CRUDJT runs a small local coordinator inside your app.
-One process acts as a leader, all others talk to it
-
-## In short
-
-CRUDJT gives you stateful sessions without JWT pain and without distributed complexity
+Fast B-tree–backed token store for stateful user sessions  
+Provides authentication and authorization across multiple processes  
+Optimized for vertical scaling on a single server  
 
 # Installation
 
@@ -36,16 +34,20 @@ go get github.com/crudjt/crudjt-go/v1
 
 ## Start CRUDJT master (once)
 
-Start the CRUDJT master when your application boots  
+Start the CRUDJT master when your application boots
 
-Only **one process** should do this  
-The master is responsible for session state and coordination  
+Only **one process** can do this for a **single token storage**  
 
-### Generate an encrypted key
+The master process manages sessions and coordination    
+All functions can also be used directly from it
+
+### Generate a new secret key (terminal)
 
 ```sh
-export CRUDJT_ENCRYPTED_KEY=$(openssl rand -base64 48)
+export CRUDJT_SECRET_KEY=$(openssl rand -base64 48)
 ```
+
+### Start master (go)
 
 ```go
 import (
@@ -54,13 +56,13 @@ import (
 )
 
 crudjt.StartMaster(crudjt.ServerConfig	{
-  EncryptedKey: os.Getenv("CRUDJT_ENCRYPTED_KEY"),
+  SecretKey: os.Getenv("CRUDJT_SECRET_KEY"),
   StoreJtPath: "path/to/local/storage", // optional
   Host: "127.0.0.1", // default
   Port: 50051, // default
 })
 ```
-The encrypted key must be the same for all processes
+*Important: Use the same `secret_key` across all sessions. If the key changes, previously stored tokens cannot be decrypted and will return `nil` or `false`*  
 
 ## Connect to an existing CRUDJT master
 
@@ -203,8 +205,8 @@ The library has the following limits and requirements
 - **Go version:** tested with 1.24.1
 - **Supported platforms:** Linux, macOS (x86_64 / arm64)
 - **Maximum json size per token:** 256 bytes
-- **`encrypted_key` format:** must be Base64
-- **`encrypted_key` size:** must be 32, 48, or 64 bytes
+- **`secret_key` format:** must be Base64
+- **`secret_key` size:** must be 32, 48, or 64 bytes
 
 # Contact & Support
 <p align="center">

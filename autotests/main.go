@@ -5,14 +5,11 @@ import (
 	"fmt"
 	"runtime"
 	"time"
-	"os"
   "github.com/exwarvlad/crud_jt-go"
 )
 
 func main() {
-	crudjt.StartMaster(crudjt.ServerConfig	{
-		EncryptedKey: os.Getenv("CRUDJT_ENCRYPTED_KEY"),
-	})
+	crudjt.ConnectToMaster(crudjt.ClientConfig	{})
 
 	fmt.Printf("OS: %s\n", runtime.GOOS)
 	fmt.Printf("CPU: %s\n", runtime.GOARCH)
