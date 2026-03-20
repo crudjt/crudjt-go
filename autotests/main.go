@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"runtime"
 	"time"
-  "github.com/exwarvlad/crud_jt-go"
+  "github.com/crudjt/crudjt-go"
 	"os"
 )
 
