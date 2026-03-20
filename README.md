@@ -129,7 +129,7 @@ result, error := crudjt.Read("HBmKFXoXgJ46mCqer1WXyQ")
 # U
 
 ```go
-data := map[string]interface{}{"user_id": 42, "role": 11}
+data := map[string]interface{}{"user_id": 42, "role": 8}
 // `nil` disables limits
 ttl := 600
 silence_read := 100
