@@ -151,7 +151,7 @@ result, error := crudjt.Delete("HBmKFXoXgJ46mCqer1WXyQ")
 ```
 
 ```go
-// when expired/not found token
+// When expired or not found token
 result, error := crudjt.Delete("HBmKFXoXgJ46mCqer1WXyQ")
 // result, error == false <nil>
 ```
