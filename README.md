@@ -1,16 +1,16 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="logos/crudjt_logo_white_on_dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="logos/crudjt_logo_dark_on_white.svg">
-    <img alt="Shows a dark logo" src="logos/crudjt_logo_dark.png">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_logo_white_on_dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_logo_dark_on_white.svg">
+    <img alt="Shows a dark logo" src="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_logo_dark.png">
   </picture>
     </br>
-    Go SDK for the fast, file-backed, scalable JSON token engine
+    Ruby SDK for the fast, file-backed, scalable JSON token engine
 </p>
 
 <p align="center">
   <a href="https://www.patreon.com/crudjt">
-    <img src="logos/buy_me_a_coffee_orange.svg" alt="Buy Me a Coffee"/>
+    <img src="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/buy_me_a_coffee_orange.svg" alt="Buy Me a Coffee"/>
   </a>
 </p>
 
@@ -66,7 +66,7 @@ crudjt.StartMaster(crudjt.ServerConfig	{
 ```
 *Important: Use the same `SecretKey` across all sessions. If the key changes, previously stored tokens cannot be decrypted and will return `nil` or `false`*  
 
-## Start CRUDJT master in Docker
+### Start CRUDJT master in Docker
 
 Create a `docker-compose.yml` file:
 
@@ -189,12 +189,29 @@ result, error := crudjt.Delete("HBmKFXoXgJ46mCqer1WXyQ")
 ```
 
 # Performance
-> Metrics will be published after 1.0.0-beta GitHub Actions builds
+**40 000** requests up to **256 bytes** — median over 10 runs  
+macOS 15.7.4, ARM64 (Apple M1)  
+Go 1.24.1  
+In-process benchmark; Redis accessed via localhost TCP  
+
+| Function | CRUDJT (Go) | JWT (Go) | redis-session-store (Ruby, Rails 8.0.2.1) |
+|----------|-------|------|------|
+| C        | 0.234 second | 0.187 second ⭐ | 2.909 seconds |
+| R        | `0.015 second` <picture> <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_160x160_white_on_dark.svg" width=16 height=16> <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_160x160_dark_on_white.svg" width=16 height=16> <img alt="Shows a favicon black on white color" src="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_white_on_dark.png" width=16 height=16> </picture>   | 0.240 second | 4.436 seconds |
+| U        | `0.352 second` <picture> <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_160x160_white_on_dark.svg" width=16 height=16> <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_160x160_dark_on_white.svg" width=16 height=16> <img alt="Shows a favicon black on white color" src="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_white_on_dark.png" width=16 height=16> </picture>   | X | 2.124 seconds |
+| D        | `0.174 second` <picture> <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_160x160_white_on_dark.svg" width=16 height=16> <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_160x160_dark_on_white.svg" width=16 height=16> <img alt="Shows a favicon black on white color" src="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_white_on_dark.png" width=16 height=16> </picture>   | X | 3.984 seconds |
+
+[Full benchmark results](https://github.com/crudjt/benchmarks)
 
 # Storage (File-backed)  
 
 ## Disk footprint  
-> Metrics will be published after 1.0.0-beta GitHub Actions builds
+**40 000** tokens of **256 bytes** each — median over 10 creates  
+darwin23, APFS  
+
+`48 MB`  
+
+[Full disk footprint results](https://github.com/crudjt/disk_footprint)
 
 ## Path Lookup Order
 Stored tokens are placed in the **file system** according to the following order
@@ -224,9 +241,9 @@ The library has the following limits and requirements
 # Contact & Support
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="logos/crudjt_favicon_160x160_white_on_dark.svg" width=160 height=160>
-    <source media="(prefers-color-scheme: light)" srcset="logos/crudjt_favicon_160x160_dark_on_white.svg" width=160 height=160>
-    <img alt="Shows a dark favicon in light color mode and a white one in dark color mode" src="logos/crudjt_favicon_160x160_white.png" width=160 height=160>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_160x160_white_on_dark.svg" width=160 height=160>
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_160x160_dark_on_white.svg" width=160 height=160>
+    <img alt="Shows a dark favicon in light color mode and a white one in dark color mode" src="https://raw.githubusercontent.com/crudjt/crudjt/refs/heads/master/logos/crudjt_favicon_160x160_white.png" width=160 height=160>
   </picture>
 </p>
 
